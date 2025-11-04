@@ -6,6 +6,7 @@
 #include "../plugins/plugin.h"
 
 #include <set>
+#include <map>
 
 /*
   This task transformation adds explicit axioms for how the default value
@@ -35,7 +36,8 @@
 namespace tasks {
 enum class AxiomHandlingType {
     APPROXIMATE_NEGATIVE,
-    APPROXIMATE_NEGATIVE_CYCLES
+    APPROXIMATE_NEGATIVE_CYCLES,
+    EXACT_NEGATIVE_CYCLES
 };
 
 struct DefaultValueAxiom {
@@ -47,10 +49,32 @@ struct DefaultValueAxiom {
     }
 };
 
+struct Variable {
+    int domain_size;
+    std::string name;
+    int axiom_layer;
+    int axiom_default_value;
+
+    Variable(
+        int domain_size, 
+        const std::string &name, 
+        int axiom_layer,
+        int axiom_default_value)
+        : domain_size(domain_size),
+          name(name),
+          axiom_layer(axiom_layer),
+          axiom_default_value(axiom_default_value) {
+    }
+};
+
+
 class DefaultValueAxiomsTask : public DelegatingTask {
     AxiomHandlingType axioms;
     std::vector<DefaultValueAxiom> default_value_axioms;
     int default_value_axioms_start_index;
+    std::vector<bool> considered_variables_for_unrolling;
+    int unrolling_vars_start_index;
+    std::vector<Variable> unrolling_variables;
 
     std::unordered_set<int> get_vars_with_relevant_default_value(
         const std::vector<std::vector<int>> &nondefault_dependencies,
@@ -63,10 +87,32 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         std::set<FactPair> &hitting_set,
         std::unordered_set<int> &hitting_set_vars,
         std::set<std::set<FactPair>> &results);
+    void unroll_negative_cycles(
+        int var,
+        const std::vector<std::vector<int> *> &var_to_scc,
+        const std::vector<std::vector<int>> &axiom_ids_for_var);
+    std::map<int, int> create_unrolling_variable_mapping(
+        const std::vector<int> &vars,
+        int timestamps);
+    int get_unrolling_variable_id(
+        const std::map<int, int> &var_mapping,
+        int var,
+        int timestamp,
+        bool base_condition,
+        int max_timestamps);
+    void initialize_new_unrolling_vars(
+        int var,
+        int timestamps);
 public:
     explicit DefaultValueAxiomsTask(
         const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms);
     virtual ~DefaultValueAxiomsTask() override = default;
+
+    virtual int get_num_variables() const override;
+    virtual std::string get_variable_name(int var) const override;
+    virtual int get_variable_domain_size(int var) const override;
+    virtual int get_variable_axiom_layer(int var) const override;
+    virtual int get_variable_default_axiom_value(int var) const override;
 
     virtual int get_operator_cost(int index, bool is_axiom) const override;
     virtual std::string get_operator_name(
