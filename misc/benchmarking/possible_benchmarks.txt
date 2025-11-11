@@ -21,3 +21,6 @@ psr-middle/p39-s112-n8-l2-f10.pddl
 psr-middle/p42-s120-n8-l4-f10.pddl
 psr-middle/p45-s132-n9-l3-f10.pddl
 psr-middle/p50-s153-n10-l4-f30.pddl
+
+ged1-ds2nd/d-4-2.pddl
+ged1-ds2nd/d-2-4.pddl
