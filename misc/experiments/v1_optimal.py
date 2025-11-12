@@ -32,7 +32,7 @@ SUITE = ['psr-large', 'psr-middle']
 ENVIRONMENT = BaselSlurmEnvironment(
     partition="infai_3",
     email="patrick01.weber@stud.unibas.ch",
-    memory_per_cpu="4000M",
+    memory_per_cpu="3872M",
     export=["PATH"],
 )
 
