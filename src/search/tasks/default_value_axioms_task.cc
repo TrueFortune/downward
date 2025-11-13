@@ -337,7 +337,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 bool base_condition = true; // Stays true if all variables of the condition are not part of the same SCC
                 for (int c = 0; c < new_conditions_size; c++) {
                     FactPair cond = get_operator_effect_condition(a, 0, c, true);
-                    if (!var_to_scc[cond.var] || var_to_scc[cond.var]->size() == 1) {
+                    if (var_to_scc[cond.var] != var_to_scc[var]) {
                         // Not in the current SCC, keep condition as is
                         new_conditions.emplace_back(cond);
                     }
