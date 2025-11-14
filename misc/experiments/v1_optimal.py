@@ -12,7 +12,7 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["c6273e2"] # latest commit from  2025-11-11
+REVISIONS = ["29b7a43", "509c5f7"] # latest commit from  2025-11-14 (without pruning and with pruning)
 CONFIG_NICKS = [
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
     ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
@@ -37,7 +37,7 @@ ENVIRONMENT = BaselSlurmEnvironment(
 )
 
 if common_setup.is_test_run():
-    #SUITE = IssueExperiment.DEFAULT_TEST_SUITE
+    SUITE = IssueExperiment.DEFAULT_TEST_SUITE
     ENVIRONMENT = LocalEnvironment(processes=1)
 
 exp = IssueExperiment(
@@ -57,7 +57,7 @@ exp.add_step("start", exp.start_runs)
 exp.add_step("parse", exp.parse)
 exp.add_fetcher(name="fetch")
 
-SPECIAL_ATTRIBUTES = []
+SPECIAL_ATTRIBUTES = ["unrolling_axioms"] # TODO: Find out how to make this work
 ATTRIBUTES = exp.DEFAULT_TABLE_ATTRIBUTES + SPECIAL_ATTRIBUTES
 SCATTER_ATTRIBUTES = SPECIAL_ATTRIBUTES
 
