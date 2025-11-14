@@ -351,7 +351,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 }
                 FactPair new_head = FactPair(
                     get_unrolling_variable_id(var_mapping, v, t, base_condition, timestamps),
-                    get_variable_default_axiom_value(v));
+                    get_operator_effect(a, 0, true).value);
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
                 //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
