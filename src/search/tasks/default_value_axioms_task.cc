@@ -5,6 +5,8 @@
 #include "../algorithms/sccs.h"
 #include "../task_utils/task_properties.h"
 
+#include "../utils/logging.h"
+
 #include <deque>
 #include <iostream>
 #include <memory>
@@ -120,8 +122,8 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 FactPair(var, default_value), axiom_ids);
         }
     }
-
-    //cout << "Added " << default_value_axioms.size() << " default value axioms." << endl;
+    if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES)
+        utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
 }
 
 /*
@@ -387,6 +389,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     get_operator_effect(a, 0, true).value);
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+                unrolling_axioms_counter++;
                 derived_unrolling_variables[new_head.var] = true;
                 //cout << "Created new axiom for unrolling: " << get_variable_name(new_head.var) << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
                 if (base_condition) {
@@ -411,6 +414,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 non_default_value));
             default_value_axioms.emplace_back(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+            unrolling_axioms_counter++;
             derived_unrolling_variables[new_head.var] = true;
             //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
         }
