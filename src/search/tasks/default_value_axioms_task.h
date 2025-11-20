@@ -35,7 +35,8 @@
 namespace tasks {
 enum class AxiomHandlingType {
     APPROXIMATE_NEGATIVE,
-    APPROXIMATE_NEGATIVE_CYCLES
+    APPROXIMATE_NEGATIVE_CYCLES,
+    EXACT_NEGATIVE_CYCLES
 };
 
 struct DefaultValueAxiom {

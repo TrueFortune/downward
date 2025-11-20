@@ -61,7 +61,8 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
     vector<vector<int>> sccs;
     vector<vector<int> *> var_to_scc;
     // We don't need the sccs if we set axioms "v=default <- {}" everywhere.
-    if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE_CYCLES) {
+    if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE_CYCLES ||
+        axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         sccs = sccs::compute_maximal_sccs(nondefault_dependencies);
         var_to_scc =
             vector<vector<int> *>(task_proxy.get_variables().size(), nullptr);
@@ -81,7 +82,11 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
         int default_value =
             task_proxy.get_variables()[var].get_default_axiom_value();
 
-        if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
+        if(axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES && 
+            var_to_scc[var]->size() > 1) {
+            exit(11); // Exit with specific exit-code so benchmarking script can catch it    
+
+        } else if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
             var_to_scc[var]->size() > 1) {
             /*
                If there is a cyclic dependency between several derived
@@ -424,5 +429,7 @@ static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
       "indicating the default value can always be achieved for free. "
       "For all other derived variables, the negated axioms are computed "
       "exactly. Note that this can potentially lead to a combinatorial "
-      "explosion."}});
+      "explosion."},
+     {"exact_negative_cycles",
+      "PLACEHOLDER"}});
 }
