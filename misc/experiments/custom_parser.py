@@ -5,8 +5,6 @@ def add_unrolling_axiom_count(content, props):
     matches = re.findall(
         r"Axioms created with unrolling: (\d+)\n", content
     )
-    print(matches)
-    exit()
     match len(matches):
         case 0:
             props["unrolling_axioms"] = 0
