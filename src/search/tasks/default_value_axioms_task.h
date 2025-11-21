@@ -75,7 +75,8 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     std::vector<bool> considered_variables_for_unrolling;
     int unrolling_vars_start_index;
     std::vector<Variable> unrolling_variables;
-
+    int unrolling_axioms_counter = 0;
+    
     std::unordered_set<int> get_vars_with_relevant_default_value(
         const std::vector<std::vector<int>> &nondefault_dependencies,
         const std::vector<std::vector<int>> &default_dependencies,
