@@ -31,7 +31,7 @@ CONFIGS = [
     for config_nick, config in CONFIG_NICKS
 ]
 
-SUITE = common_setup.DEFAULT_OPTIMAL_SUITE
+SUITE = ["drones-horndl", "queens-horndl", "psr-middle", "psr-large"] # all suites that use unrolling
 
 ENVIRONMENT = BaselSlurmEnvironment(
     partition="infai_3",
