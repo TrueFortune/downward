@@ -122,8 +122,10 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 FactPair(var, default_value), axiom_ids);
         }
     }
-    if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES)
+    if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
+        utils::g_log << "Variables created with unrolling: " << unrolling_variables.size() << endl;
+    }
 }
 
 /*
@@ -329,22 +331,25 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     const vector<vector<int>> &axiom_ids_for_var) {
     // The maximum number of timestamps needed to keep the same semantics is equal the number of variables in the SCC
     int timestamps = var_to_scc[var]->size();
-    map<int, int> var_mapping = create_unrolling_variable_mapping(*var_to_scc[var], timestamps);
-    // Store all variables that have been derived during unrolling to check which variables are reachable
-    vector<bool> derived_unrolling_variables(get_num_variables(), false);
+    // Store the mappings for the variables only for the previous and the current timestamp
+    map<int, int> var_mapping_prev;
+    map<int, int> var_mapping_curr;
     // Store all axioms that only need to be unrolled once with t = 0
     vector<bool> base_condition_axioms(get_num_axioms(), false);
     vector<FactPair> new_conditions;
     FactPair new_head(0, 0);
     //cout << "Unrolling SCC with " << var_to_scc[var]->size() << " variables" << endl;
     /*
-        Int t = -1 we only create base condition axioms, i.e., axioms where all variables in the body are not part of the current SCC
+        In t = -1 we only create base condition axioms, i.e., axioms where all variables in the body are not part of the current SCC
         We need to initialize these in order to know which axioms can actually be derived during the next timestamp
         The axioms are built in the order of the timestamps, so that we always know which variables are reachable from the previous timestamp
         This way we need to create less axioms than if we did unrolling normally
         The semantics do not change since we only omit the axioms that aren't reachable anyways and therefore would never be used
+        The same is done for the variables, only variables that can be created with the previous cycles's axioms are created
     */
-    for (int t = -1; t < timestamps; t++) {
+    for (int t = -1; t < timestamps - 1; t++) {
+        var_mapping_prev = var_mapping_curr;
+        var_mapping_curr.clear();
         for (int v : *var_to_scc[var]) {
             for (int a : axiom_ids_for_var[v]) {
                 if (base_condition_axioms[a]) {
@@ -368,12 +373,20 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                             // We only create new axioms for base conditions in t = -1
                             break;
                         }
+                        int new_var;
                         // Considered variable is part of the current SCC, need to unroll
-                        int new_var = get_unrolling_variable_id(var_mapping, cond.var, t, base_condition, timestamps);
-                        if (!derived_unrolling_variables[new_var] && cond.value != get_variable_default_axiom_value(new_var)) {
-                            // One of the right-hand-side variables has not been derived yet and needs the non-default value, which makes the current axiom unreachable
+                        if (var_mapping_prev.count(cond.var)) {
+                            new_var = var_mapping_prev.at(cond.var);
+                        }
+                        else if (cond.value != get_variable_default_axiom_value(cond.var)) {
                             unreachable = true;
                             break;
+                        }
+                        else {
+                            // If somehow a variable ends up needing the default value of a variable of the same SCC, we need to create that varible with the default value
+                            // Does such a case ever occur or is this forbidden with stratification?
+                            new_var = initialize_new_unrolling_var(cond.var, t);
+                            var_mapping_prev[cond.var] = new_var;
                         }
                         new_conditions.emplace_back(FactPair(
                             new_var, 
@@ -384,14 +397,25 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     // We only create new axioms for base conditions in t = -1 and never for unreachable axioms
                     continue;
                 }
+                int new_head_var;
+                if (t == timestamps - 2) {
+                    // At the last timestamp we map the head back to the original variable
+                    new_head_var = v;
+                }
+                else if (var_mapping_curr.count(v)) {
+                    new_head_var = var_mapping_curr.at(v);
+                }
+                else {
+                    new_head_var = initialize_new_unrolling_var(v, t + 1);
+                    var_mapping_curr[v] = new_head_var;
+                }
                 new_head = FactPair(
-                    get_unrolling_variable_id(var_mapping, v, t, base_condition, timestamps),
+                    new_head_var,
                     get_operator_effect(a, 0, true).value);
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
                 unrolling_axioms_counter++;
-                derived_unrolling_variables[new_head.var] = true;
-                //cout << "Created new axiom for unrolling: " << get_variable_name(new_head.var) << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
+                //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
                 if (base_condition) {
                     // Mark axiom so that we don't need to consider it again
                     base_condition_axioms[a] = true;
@@ -399,92 +423,58 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             }
 
             // Create new axiom to propagate the non-default value
-            int new_var = get_unrolling_variable_id(var_mapping, v, t - 1, false, timestamps);
-            if (!derived_unrolling_variables[new_var]) {
+            int new_propagation_var;
+            if (var_mapping_prev.count(v)) {
+                new_propagation_var = var_mapping_prev.at(v);
+            }
+            else {
                 // The right-hand-side variable has not been derived yet, which makes the current axiom unreachable
                 continue;
             }
             int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
+            int new_propagation_head_var;
+            if (t == timestamps - 2) {
+                // At the last timestamp we map the head back to the original variable
+                new_propagation_head_var = v;
+            }
+            else if (var_mapping_curr.count(v)) {
+                new_propagation_head_var = var_mapping_curr.at(v);
+            }
+            else {
+                new_propagation_head_var = initialize_new_unrolling_var(v, t + 1);
+                var_mapping_curr[v] = new_propagation_head_var;
+            }
             new_head = FactPair(
-                get_unrolling_variable_id(var_mapping, v, t, false, timestamps),
+                new_propagation_head_var,
                 non_default_value);
             new_conditions.clear();
             new_conditions.emplace_back(FactPair(
-                new_var, 
+                new_propagation_var, 
                 non_default_value));
             default_value_axioms.emplace_back(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
             unrolling_axioms_counter++;
-            derived_unrolling_variables[new_head.var] = true;
             //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
         }
         
     }
-}
-
-int DefaultValueAxiomsTask::get_unrolling_variable_id(
-    const map<int, int> &var_mapping, 
-    int var, 
-    int timestamp, 
-    bool base_condition, 
-    int max_timestamps) {
-    //cout << "Input: " << var << ", " << timestamp << ", " << max_timestamps << endl;
-    // If all variables of the body are not part of the same SCC, we use the var at t=0
-    if (base_condition) {
-        //cout << "Return " << var_mapping.at(var) << endl;
-        return var_mapping.at(var);
-    }
-    // If the variable is at the last timestamp, we use the original value, so we don't have to change the variables in the rest of the axioms
-    else if (timestamp == max_timestamps - 1) {
-        //cout << "Return " << var << endl;
-        return var;
-    }
-    // Else we use the variable at the given timestamp
-    else {
-        //cout << "Return " << var_mapping.at(var) + timestamp << endl;
-        return var_mapping.at(var) + timestamp;
+    // Mark all variables in the SCC as considered for unrolling
+    for (int v : *var_to_scc[var]) {
+        considered_variables_for_unrolling[v] = true;
     }
 }
 
-map<int, int> DefaultValueAxiomsTask::create_unrolling_variable_mapping(
-    const vector<int> &vars, 
-    int timestamps) {
-    /* 
-      The variable mapping maps each variable of the current SCC to their respective variable at timestamp 0
-      The actual variable mapping works as follows: current_num_of_vars + t + index_in_scc * (timestamps - 1)
-      Example for SCC with current = 10 and using var1, var2 and var3 -> 3 timestamps):
-      var1 at t=0 -> 10 + 0 + 0 * (3 - 1) = 10
-      var1 at t=1 -> 10 + 1 + 0 * (3 - 1) = 11
-      var1 at t=2 -> var1
-      var2 at t=0 -> 10 + 0 + 1 * (3 - 1) = 12
-      var2 at t=1 -> 10 + 1 + 1 * (3 - 1) = 13
-      var2 at t=2 -> var2
-      ...
-    */
 
-    int num_variables = get_num_variables();
-    map<int, int> var_mapping;
-    for (int i = 0; i < (int)vars.size(); i++) {
-        var_mapping[vars[i]] = num_variables + i * (timestamps - 1);
-        //cout << "Mapping variable " << vars[i] << " to new unrolling variable id " << var_mapping[vars[i]] << endl;
-        initialize_new_unrolling_vars(vars[i], timestamps); // Initialize new variables here to ensure that the mapping is correct
-    considered_variables_for_unrolling[vars[i]] = true;
-    }
-    return var_mapping;
-}
-
-void DefaultValueAxiomsTask::initialize_new_unrolling_vars(
-    int var,
-    int timestamps) {
-    for (int t = 0; t < timestamps - 1; t++){ // No need for last timestamp, as it uses the original variable
-        unrolling_variables.emplace_back(
-            2, // Domain size, derived variables are binary
-            get_variable_name(var) + "_" + to_string(t), // Name
-            get_variable_axiom_layer(var), // Axiom layer stays the same
-            get_variable_default_axiom_value(var) // Default axiom value stays the same
-        );
-        //cout << "Created new unrolling variable: " << unrolling_variables.back().name << " and id " << get_num_variables() - 1 << endl;
-    }
+int DefaultValueAxiomsTask::initialize_new_unrolling_var(
+    int var, int timestamp) {
+    unrolling_variables.emplace_back(
+        2, // Domain size, derived variables are binary
+        get_variable_name(var) + "_" + to_string(timestamp), // Name
+        get_variable_axiom_layer(var), // Axiom layer stays the same
+        get_variable_default_axiom_value(var) // Default axiom value stays the same
+    );
+    //cout << "Created new unrolling variable: " << unrolling_variables.back().name << " and id " << get_num_variables() - 1 << endl;
+    return get_num_variables() - 1;
 }
 
 int DefaultValueAxiomsTask::get_num_variables() const {

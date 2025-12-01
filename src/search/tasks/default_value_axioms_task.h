@@ -101,9 +101,9 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         int timestamp,
         bool base_condition,
         int max_timestamps);
-    void initialize_new_unrolling_vars(
+    int initialize_new_unrolling_var(
         int var,
-        int timestamps);
+        int timestamp);
 public:
     explicit DefaultValueAxiomsTask(
         const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms);
