@@ -335,7 +335,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     for (int v : *var_to_scc[var]) {
         for (int a : axiom_ids_for_var[v]) {
             int new_conditions_size = get_num_operator_effect_conditions(a, 0, true);
-            for (int t = 0; t < timestamps; t++) {
+            for (int t = 0; t < timestamps - 1; t++) {
                 vector<FactPair> new_conditions;
                 bool base_condition = true; // Stays true if all variables of the condition are not part of the same SCC
                 for (int c = 0; c < new_conditions_size; c++) {
@@ -353,7 +353,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     }
                 }
                 FactPair new_head = FactPair(
-                    get_unrolling_variable_id(var_mapping, v, t, base_condition, timestamps),
+                    get_unrolling_variable_id(var_mapping, v, t + 1, base_condition, timestamps),
                     get_operator_effect(a, 0, true).value);
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
@@ -368,14 +368,14 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
         }
 
         // Create new axioms to propagate the non-default value
-        for (int t = 1; t < timestamps; t++) {
+        for (int t = 0; t < timestamps - 1; t++) {
             int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
             FactPair new_head = FactPair(
-                    get_unrolling_variable_id(var_mapping, v, t, false, timestamps),
+                    get_unrolling_variable_id(var_mapping, v, t + 1, false, timestamps),
                     non_default_value);
             vector<FactPair> new_conditions;
             new_conditions.emplace_back(FactPair(
-                get_unrolling_variable_id(var_mapping, v, t - 1, false, timestamps), 
+                get_unrolling_variable_id(var_mapping, v, t, false, timestamps), 
                 non_default_value));
             default_value_axioms.emplace_back(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
@@ -431,7 +431,7 @@ map<int, int> DefaultValueAxiomsTask::create_unrolling_variable_mapping(
     map<int, int> var_mapping;
     for (int i = 0; i < (int)vars.size(); i++) {
         var_mapping[vars[i]] = num_variables + i * (timestamps - 1);
-        //cout << "Mapping variable " << vars[i] << " to new unrolling variable id " << var_mapping[vars[i]] << endl;
+        //cout << "Mapping variable " << vars[i] << " to new unrolling variable id " << var_mapping[vars[i]] << " with default value " << get_variable_default_axiom_value(vars[i]) << endl ;
         initialize_new_unrolling_vars(vars[i], timestamps); // Initialize new variables here to ensure that the mapping is correct
     }
     return var_mapping;
