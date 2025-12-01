@@ -344,7 +344,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
         This way we need to create less axioms than if we did unrolling normally
         The semantics do not change since we only omit the axioms that aren't reachable anyways and therefore would never be used
     */
-    for (int t = -1; t < timestamps; t++) {
+    for (int t = -1; t < timestamps - 1; t++) {
         for (int v : *var_to_scc[var]) {
             for (int a : axiom_ids_for_var[v]) {
                 if (base_condition_axioms[a]) {
@@ -385,7 +385,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     continue;
                 }
                 new_head = FactPair(
-                    get_unrolling_variable_id(var_mapping, v, t, base_condition, timestamps),
+                    get_unrolling_variable_id(var_mapping, v, t + 1, base_condition, timestamps),
                     get_operator_effect(a, 0, true).value);
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
@@ -399,14 +399,14 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             }
 
             // Create new axiom to propagate the non-default value
-            int new_var = get_unrolling_variable_id(var_mapping, v, t - 1, false, timestamps);
+            int new_var = get_unrolling_variable_id(var_mapping, v, t, false, timestamps);
             if (!derived_unrolling_variables[new_var]) {
                 // The right-hand-side variable has not been derived yet, which makes the current axiom unreachable
                 continue;
             }
             int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
             new_head = FactPair(
-                get_unrolling_variable_id(var_mapping, v, t, false, timestamps),
+                get_unrolling_variable_id(var_mapping, v, t + 1, false, timestamps),
                 non_default_value);
             new_conditions.clear();
             new_conditions.emplace_back(FactPair(
@@ -416,7 +416,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
             unrolling_axioms_counter++;
             derived_unrolling_variables[new_head.var] = true;
-            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
+            //cout << "Created new axiom for unrolling: " << get_variable_name(new_head.var) << " <- " << new_conditions << endl;
         }
         
     }
