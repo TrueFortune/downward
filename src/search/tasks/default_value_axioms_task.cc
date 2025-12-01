@@ -122,8 +122,10 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 FactPair(var, default_value), axiom_ids);
         }
     }
-    if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES)
+    if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
+        utils::g_log << "Variables created with unrolling: " << unrolling_variables.size() << endl;
+    }
 }
 
 /*
