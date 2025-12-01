@@ -11,19 +11,13 @@ from common_setup import IssueConfig, IssueExperiment
 
 from custom_parser import unrolling_parser
 
-from custom_report import create_comparative_report, create_scatter_plot_report
-
-
 ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["a11603d"] # latest commit from  2025-12-01
+REVISIONS = ["a11603d", "dfdbe3a", "d522978"] # normal - axiom pruning - axiom + variable pruning | 2025-12-01
 CONFIG_NICKS = [
-    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
-    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
-    ("eager-greedy-ff-unrolling", ["--search", "eager_greedy([ff(axioms=exact_negative_cycles)])"]),
 ]
 
 CONFIGS = [
@@ -67,13 +61,11 @@ exp.add_fetcher(name="fetch")
 
 SPECIAL_ATTRIBUTES = [Attribute("unrolling_axioms", absolute=True), Attribute("unrolling_variables", absolute=True)]
 ATTRIBUTES = exp.DEFAULT_TABLE_ATTRIBUTES + SPECIAL_ATTRIBUTES
-SCATTER_ATTRIBUTES = ["planner_time", "search_time", "memory", "initial_h_value", "expansions", "evaluations", "generated" "cost"]
+SCATTER_ATTRIBUTES = SPECIAL_ATTRIBUTES
 
 exp.add_absolute_report_step(attributes=ATTRIBUTES)
-#exp.add_comparison_table_step(attributes=ATTRIBUTES)
-exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES])
-#exp.add_scatter_plot_step(relative=False, attributes=["planner_time", "search_time", "memory", "initial_h_value", "expansions", "evaluations"])
-exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES])
+exp.add_comparison_table_step(attributes=ATTRIBUTES)
+exp.add_scatter_plot_step(relative=False, attributes=["search_time", "expansions", "evaluations"])
 
 #exp.add_archive_step(ARCHIVE_PATH)
 #exp.add_archive_eval_dir_step(ARCHIVE_PATH)
