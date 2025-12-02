@@ -15,7 +15,7 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["a11603d", "dfdbe3a", "d522978"] # normal - axiom pruning - axiom + variable pruning | 2025-12-01
+REVISIONS = ["a11603d", "9c7a56f", "6cf9469"] # normal - axiom pruning - axiom + variable pruning | 2025-12-01
 CONFIG_NICKS = [
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
 ]
