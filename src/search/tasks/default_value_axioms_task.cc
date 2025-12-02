@@ -399,7 +399,11 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     base_condition_axioms[a] = true;
                 }
             }
-
+            
+            if (t == -1) {
+                // In t = -1 we only create base condition axioms
+                continue;
+            }
             // Create new axiom to propagate the non-default value
             int new_var = get_unrolling_variable_id(var_mapping, v, t, false, timestamps);
             if (!derived_unrolling_variables[new_var]) {
