@@ -348,7 +348,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
         The same is done for the variables, only variables that can be created with the previous cycles's axioms are created
     */
     for (int t = -1; t < timestamps - 1; t++) {
-        var_mapping_prev = var_mapping_curr;
+        var_mapping_prev = std::move(var_mapping_curr);
         var_mapping_curr.clear();
         for (int v : *var_to_scc[var]) {
             for (int a : axiom_ids_for_var[v]) {
