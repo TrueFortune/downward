@@ -75,7 +75,7 @@ exp.add_absolute_report_step(attributes=ATTRIBUTES)
 #exp.add_comparison_table_step(attributes=ATTRIBUTES)
 exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES, 3])
 #exp.add_scatter_plot_step(relative=False, attributes=["planner_time", "search_time", "memory", "initial_h_value", "expansions", "evaluations"])
-exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES])
+exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES, 3])
 
 #exp.add_archive_step(ARCHIVE_PATH)
 #exp.add_archive_eval_dir_step(ARCHIVE_PATH)
