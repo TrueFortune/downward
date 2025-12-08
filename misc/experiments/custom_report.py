@@ -4,24 +4,34 @@ from downward.reports.scatter import ScatterPlotReport
 
 import os
 
+import itertools
+
 def create_comparative_report(*args):
-    exp, config_nicks, revisions, attributes = args[0]
+    exp, config_nicks, revisions, attributes, pair_size = args[0]
     configs = []
     algorithm_pairs = []
+    n = int(pair_size)
     for config_nick, _ in config_nicks:
         configs.append(config_nick)
 
+    for i in range(len(configs) // n):
+        algorithms = []
+        for rev in revisions:
+            for j in range(n):
+                algorithms.append(f"{rev}-{configs[i * n + j]}")
+        print(algorithms)
 
-    for rev in revisions:
-        for i in range(len(configs) // 2):
-            algorithm_pairs.append(
-                (
-                    f"{rev}-{configs[2*i]}",
-                    f"{rev}-{configs[2*i + 1]}",
-                    f"Diff {rev}_{i}"
+        revision_pairs = [(rev1, rev2) for rev1, rev2 in itertools.combinations(algorithms, 2)]
+
+        for j, (rev1, rev2) in enumerate(revision_pairs):
+                algorithm_pairs.append(
+                    (
+                        rev1,
+                        rev2,
+                        f"Diff {i * n + j}"
+                    )
                 )
-            )
-
+    print(algorithm_pairs)
     report = ComparativeReport(algorithm_pairs, attributes=attributes)
     outfile = os.path.join(
     exp.eval_dir,

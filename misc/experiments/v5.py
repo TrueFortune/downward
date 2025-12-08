@@ -20,9 +20,11 @@ BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
 REVISIONS = ["a11603d"] # latest commit from  2025-12-01
 CONFIG_NICKS = [
-    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
+    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative)])"]),
+    ("eager-greedy-add-approximate-loops", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
-    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
+    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative)])"]),
+    ("eager-greedy-ff-approximate-loops", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-ff-unrolling", ["--search", "eager_greedy([ff(axioms=exact_negative_cycles)])"]),
 ]
 
@@ -71,7 +73,7 @@ SCATTER_ATTRIBUTES = ["planner_time", "search_time", "memory", "initial_h_value"
 
 exp.add_absolute_report_step(attributes=ATTRIBUTES)
 #exp.add_comparison_table_step(attributes=ATTRIBUTES)
-exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES, 2])
+exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES, 3])
 #exp.add_scatter_plot_step(relative=False, attributes=["planner_time", "search_time", "memory", "initial_h_value", "expansions", "evaluations"])
 exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES])
 
