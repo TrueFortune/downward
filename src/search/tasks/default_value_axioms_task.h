@@ -49,21 +49,27 @@ struct DefaultValueAxiom {
     }
 };
 
-struct Variable {
+struct UnrollingVariable {
     int domain_size;
     std::string name;
     int axiom_layer;
     int axiom_default_value;
+    int timestamp;
+    int max_timestamps;
 
-    Variable(
+    UnrollingVariable(
         int domain_size, 
         const std::string &name, 
         int axiom_layer,
-        int axiom_default_value)
+        int axiom_default_value,
+        int timestamp,
+        int max_timestamps)
         : domain_size(domain_size),
           name(name),
           axiom_layer(axiom_layer),
-          axiom_default_value(axiom_default_value) {
+          axiom_default_value(axiom_default_value),
+          timestamp(timestamp),
+          max_timestamps(max_timestamps) {
     }
 };
 
@@ -74,7 +80,7 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     int default_value_axioms_start_index;
     std::vector<bool> considered_variables_for_unrolling;
     int unrolling_vars_start_index;
-    std::vector<Variable> unrolling_variables;
+    std::vector<UnrollingVariable> unrolling_variables;
     int unrolling_axioms_counter = 0;
     
     std::unordered_set<int> get_vars_with_relevant_default_value(
@@ -91,16 +97,15 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     void unroll_negative_cycles(
         int var,
         const std::vector<std::vector<int> *> &var_to_scc,
-        const std::vector<std::vector<int>> &axiom_ids_for_var);
-    std::map<int, int> create_unrolling_variable_mapping(
+        const std::vector<std::vector<int>> &axiom_ids_for_var,
+        std::unordered_map<int,int> &var_mapping);
+    void create_unrolling_variable_mapping_and_initialize_unrolling_variables(
         const std::vector<int> &vars,
-        int timestamps);
+        std::unordered_map<int, int> &var_mapping);
     int get_unrolling_variable_id(
-        const std::map<int, int> &var_mapping,
+        const std::unordered_map<int, int> &var_mapping,
         int var,
-        int timestamp,
-        bool base_condition,
-        int max_timestamps);
+        int timestamp);
     void initialize_new_unrolling_vars(
         int var,
         int timestamps);
@@ -114,6 +119,8 @@ public:
     virtual int get_variable_domain_size(int var) const override;
     virtual int get_variable_axiom_layer(int var) const override;
     virtual int get_variable_default_axiom_value(int var) const override;
+    virtual int get_variable_timestamp(int var) const;
+    virtual int get_variable_max_timestamps(int var) const;
 
     virtual int get_operator_cost(int index, bool is_axiom) const override;
     virtual std::string get_operator_name(
