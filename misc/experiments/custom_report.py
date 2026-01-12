@@ -76,6 +76,6 @@ def create_scatter_plot_report(*args):
             outfile = os.path.join(
             exp.eval_dir,
             "%s-%s-%s-%s.%s" % (
-                exp.name, labels[0], labels[1], attribute, report.output_format))
+                exp.name, algorithm_pair[0], algorithm_pair[1], attribute, report.output_format))
             report(exp.eval_dir, outfile)
 
