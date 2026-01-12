@@ -39,7 +39,7 @@ def create_comparative_report(*args):
 
 
 def create_scatter_plot_report(*args):
-    exp, config_nicks, revisions, attributes, pair_size = args[0]
+    exp, config_nicks, revisions, attributes, pair_size, labels = args[0] # labels only accepts 2 values, for comparisons of 3 algorithms create separate reports
     configs = []
     algorithm_pairs = []
     n = int(pair_size)
@@ -64,7 +64,7 @@ def create_scatter_plot_report(*args):
                 )
     for attribute in attributes:
         for algorithm_pair in algorithm_pairs:
-            report = ScatterPlotReport(attributes=attribute, filter_algorithm=[algorithm_pair[0], algorithm_pair[1]])
+            report = ScatterPlotReport(attributes=attribute, filter_algorithm=[algorithm_pair[0], algorithm_pair[1]], xlabel=labels[0], ylabel=labels[1])
             outfile = os.path.join(
             exp.eval_dir,
             "%s-%s-%s-%s.%s" % (
