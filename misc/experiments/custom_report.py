@@ -37,6 +37,10 @@ def create_comparative_report(*args):
         exp.name, report.output_format))
     report(exp.eval_dir, outfile)
 
+def domain_as_category(run1, run2):
+    # run2['domain'] has the same value, because we always
+    # compare two runs of the same problem.
+    return run1["domain"]
 
 def create_scatter_plot_report(*args):
     exp, config_nicks, revisions, attributes, pair_size, labels = args[0] # labels only accepts 2 values, for comparisons of 3 algorithms create separate reports
@@ -64,10 +68,14 @@ def create_scatter_plot_report(*args):
                 )
     for attribute in attributes:
         for algorithm_pair in algorithm_pairs:
-            report = ScatterPlotReport(attributes=attribute, filter_algorithm=[algorithm_pair[0], algorithm_pair[1]], xlabel=labels[0], ylabel=labels[1])
+            report = ScatterPlotReport(attributes=attribute, 
+                                       filter_algorithm=[algorithm_pair[0], algorithm_pair[1]], 
+                                       xlabel=labels[0], 
+                                       ylabel=labels[1], 
+                                       get_category=domain_as_category)
             outfile = os.path.join(
             exp.eval_dir,
             "%s-%s-%s-%s.%s" % (
-                exp.name, algorithm_pair[0], algorithm_pair[1], attribute, report.output_format))
+                exp.name, labels[0], labels[1], attribute, report.output_format))
             report(exp.eval_dir, outfile)
 
