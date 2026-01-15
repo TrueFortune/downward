@@ -132,6 +132,7 @@ public:
     virtual int get_variable_axiom_layer(int var) const override;
     virtual int get_variable_default_axiom_value(int var) const override;
     virtual std::string get_fact_name(const FactPair &fact) const override;
+    virtual std::vector<int> get_initial_state_values() const override;
     virtual int get_variable_timestamp(int var) const;
     virtual int get_variable_max_timestamps(int var) const;
 

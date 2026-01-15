@@ -546,6 +546,10 @@ string DefaultValueAxiomsTask::get_fact_name(const FactPair &fact) const {
     return "";
 }
 
+vector<int> DefaultValueAxiomsTask::get_initial_state_values() const {
+    return parent->get_initial_state_values();
+}
+
 int DefaultValueAxiomsTask::get_variable_timestamp(int var) const {
     assert(var >= unrolling_vars_start_index);
 
