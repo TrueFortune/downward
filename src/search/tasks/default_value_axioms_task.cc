@@ -543,7 +543,7 @@ string DefaultValueAxiomsTask::get_fact_name(const FactPair &fact) const {
         return parent->get_fact_name(fact);
     }
 
-    return "";
+    return "<none of those>";
 }
 
 vector<int> DefaultValueAxiomsTask::get_initial_state_values() const {
