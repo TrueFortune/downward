@@ -95,8 +95,29 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
             var_to_scc[var]->size() > 1) {
             // Only unroll variables that haven't been in unrolled SCCs yet
             if (!considered_variables_for_unrolling[var]) {
+                vector<UnrollingAxiom> unrolling_axioms;
                 unroll_negative_cycles(
-                    var, var_to_scc, axiom_ids_for_var, var_mapping);
+                    var, var_to_scc, axiom_ids_for_var, var_mapping, unrolling_axioms);
+                vector<vector<int>> unrolling_axiom_ids_for_var(get_num_variables());
+                vector<int> current_unrolling_variables;
+                for(UnrollingAxiom &axiom : unrolling_axioms) {
+                    int head_var = axiom.head.var;
+                    auto it = find(current_unrolling_variables.begin(), current_unrolling_variables.end(), head_var);
+                    if (it == current_unrolling_variables.end()) {
+                        current_unrolling_variables.push_back(head_var);
+                    }
+                    unrolling_axiom_ids_for_var[head_var].push_back(axiom.axiom_id);
+                }
+                for (int v : current_unrolling_variables) {
+                    add_default_value_axioms_for_var(
+                        FactPair(v, get_variable_default_axiom_value(v)), unrolling_axiom_ids_for_var[v], true, unrolling_axioms);
+                }
+
+                // Add unrolling axioms to default_value_axioms to expose them to the search
+                // These axioms are required to derive the non-default values of the unrolled variables
+                for (UnrollingAxiom &axiom : unrolling_axioms) {
+                    default_value_axioms.emplace_back(axiom.head, vector<FactPair>(axiom.condition.begin(), axiom.condition.end()));
+                }
             }
            
         } else if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
@@ -119,7 +140,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 FactPair(var, default_value), vector<FactPair>());
         } else {
             add_default_value_axioms_for_var(
-                FactPair(var, default_value), axiom_ids);
+                FactPair(var, default_value), axiom_ids, false);
         }
     }
 
@@ -127,6 +148,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
         utils::g_log << "Variables created with unrolling: " << unrolling_variables.size() << endl;
     }
+    utils::g_log << "Default Value Axioms created: " << default_value_axioms.size() << endl;
 }
 
 /*
@@ -202,7 +224,8 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
         */
         if ((default_value) &&
             (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
-             var_to_scc[var]->size() > 1)) {
+             (var_to_scc[var]->size() > 1 &&
+              axioms != AxiomHandlingType::EXACT_NEGATIVE_CYCLES))) {
             continue;
         }
 
@@ -230,9 +253,9 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
 }
 
 void DefaultValueAxiomsTask::add_default_value_axioms_for_var(
-    FactPair head, vector<int> &axiom_ids) {
+    FactPair head, vector<int> &axiom_ids, bool variable_unrolled,
+    const vector<UnrollingAxiom> &unrolling_axioms) {
     TaskProxy task_proxy(*parent);
-
     /*
       If no axioms change the variable to its non-default value,
       then the default is always true.
@@ -242,22 +265,39 @@ void DefaultValueAxiomsTask::add_default_value_axioms_for_var(
         return;
     }
 
-    vector<set<FactPair>> conditions_as_cnf;
-    conditions_as_cnf.reserve(axiom_ids.size());
-    for (int axiom_id : axiom_ids) {
-        OperatorProxy axiom = task_proxy.get_axioms()[axiom_id];
-        conditions_as_cnf.emplace_back();
-        for (FactProxy fact : axiom.get_effects()[0].get_conditions()) {
-            int var_id = fact.get_variable().get_id();
-            int num_vals = task_proxy.get_variables()[var_id].get_domain_size();
-            for (int value = 0; value < num_vals; ++value) {
-                if (value != fact.get_value()) {
-                    conditions_as_cnf.back().insert({var_id, value});
+    vector<set<FactPair>> conditions_as_cnf; 
+    if (!variable_unrolled) { 
+        conditions_as_cnf.reserve(axiom_ids.size());
+        for (int axiom_id : axiom_ids) {
+            OperatorProxy axiom = task_proxy.get_axioms()[axiom_id];
+            conditions_as_cnf.emplace_back();
+            for (FactProxy fact : axiom.get_effects()[0].get_conditions()) {
+                int var_id = fact.get_variable().get_id();
+                int num_vals = task_proxy.get_variables()[var_id].get_domain_size();
+                for (int value = 0; value < num_vals; ++value) {
+                    if (value != fact.get_value()) {
+                        conditions_as_cnf.back().insert({var_id, value});
+                    }
+                }
+            }
+        }
+    } else {
+        vector<set<FactPair>> conditions_as_cnf; 
+        conditions_as_cnf.reserve(axiom_ids.size());
+        for (int axiom_id : axiom_ids) {
+            UnrollingAxiom axiom = unrolling_axioms[axiom_id];
+            conditions_as_cnf.emplace_back();
+            for (FactPair fact : axiom.condition) {
+                int var_id = fact.var;
+                int num_vals = get_variable_domain_size(var_id);
+                for (int value = 0; value < num_vals; ++value) {
+                    if (value != fact.value) {
+                        conditions_as_cnf.back().insert({var_id, value});
+                    }
                 }
             }
         }
     }
-
     // We can see multiplying out the cnf as collecting all hitting sets.
     set<FactPair> current;
     unordered_set<int> current_vars;
@@ -330,7 +370,8 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     int var,
     const vector<vector<int> *> &var_to_scc,
     const vector<vector<int>> &axiom_ids_for_var,
-    unordered_map<int, int> &var_mapping) {
+    unordered_map<int, int> &var_mapping,
+    vector<UnrollingAxiom> &unrolling_axioms) {
     // The maximum number of timestamps needed to keep the same semantics is equal the number of variables in the SCC
     int timestamps = var_to_scc[var]->size();
     create_unrolling_variable_mapping_and_initialize_unrolling_variables(*var_to_scc[var], var_mapping);
@@ -368,9 +409,9 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 new_head = FactPair(
                     new_head_var,
                     get_operator_effect(a, 0, true).value);
-                default_value_axioms.emplace_back(
-                    new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
-                    unrolling_axioms_counter++;
+                unrolling_axioms.emplace_back(
+                    new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()), unrolling_axioms.size());
+                unrolling_axioms_counter++;
                 //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
 
                 // If the body doesn't contain any variables of the current SCC, we only need to create the axiom for t=0
@@ -390,8 +431,8 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             new_conditions.emplace_back(FactPair(
                 get_unrolling_variable_id(var_mapping, v, t), 
                 non_default_value));
-            default_value_axioms.emplace_back(
-                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+            unrolling_axioms.emplace_back(
+                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()), unrolling_axioms.size());
             unrolling_axioms_counter++;
             //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
         }

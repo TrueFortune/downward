@@ -73,6 +73,16 @@ struct UnrollingVariable {
     }
 };
 
+struct UnrollingAxiom {
+    FactPair head;
+    std::vector<FactPair> condition;
+    int axiom_id;
+
+    UnrollingAxiom(FactPair head, std::vector<FactPair> &&condition, int axiom_id)
+        : head(head), condition(condition), axiom_id(axiom_id) {
+    }
+};
+
 
 class DefaultValueAxiomsTask : public DelegatingTask {
     AxiomHandlingType axioms;
@@ -88,7 +98,8 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         const std::vector<std::vector<int>> &default_dependencies,
         const std::vector<std::vector<int> *> &var_to_scc);
     void add_default_value_axioms_for_var(
-        FactPair head, std::vector<int> &axiom_ids);
+        FactPair head, std::vector<int> &axiom_ids, bool variable_unrolled,
+        const std::vector<UnrollingAxiom> &unrolling_axioms = {});
     void collect_non_dominated_hitting_sets_recursively(
         const std::vector<std::set<FactPair>> &set_of_sets, size_t index,
         std::set<FactPair> &hitting_set,
@@ -98,7 +109,8 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         int var,
         const std::vector<std::vector<int> *> &var_to_scc,
         const std::vector<std::vector<int>> &axiom_ids_for_var,
-        std::unordered_map<int,int> &var_mapping);
+        std::unordered_map<int,int> &var_mapping,
+        std::vector<UnrollingAxiom> &unrolling_axioms);
     void create_unrolling_variable_mapping_and_initialize_unrolling_variables(
         const std::vector<int> &vars,
         std::unordered_map<int, int> &var_mapping);
