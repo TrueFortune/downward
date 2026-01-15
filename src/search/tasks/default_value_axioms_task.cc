@@ -538,6 +538,14 @@ int DefaultValueAxiomsTask::get_variable_default_axiom_value(int var) const {
     return unrolling_variables[var - unrolling_vars_start_index].axiom_default_value;
 }
 
+string DefaultValueAxiomsTask::get_fact_name(const FactPair &fact) const {
+    if (fact.var < unrolling_vars_start_index) {
+        return parent->get_fact_name(fact);
+    }
+
+    return "";
+}
+
 int DefaultValueAxiomsTask::get_variable_timestamp(int var) const {
     assert(var >= unrolling_vars_start_index);
 
