@@ -18,12 +18,14 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["7acb9a1"] # latest commit from  2026-01-15
+REVISIONS = ["55d4da0"] # latest commit from  2026-01-15
 CONFIG_NICKS = [
-    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
-    ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
-    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
-    ("eager-greedy-ff-unrolling", ["--search", "eager_greedy([ff(axioms=exact_negative_cycles)])"]),
+    ("landmark-approximate", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
+    ("landmark-unrolling", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=exact_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"])
+    #("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
+    #("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
+    #("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
+    #("eager-greedy-ff-unrolling", ["--search", "eager_greedy([ff(axioms=exact_negative_cycles)])"]),
 ]
 
 CONFIGS = [
