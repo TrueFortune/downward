@@ -24,6 +24,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
       default_value_axioms_start_index(parent->get_num_axioms()),
       unrolling_vars_start_index(parent->get_num_variables()) {
     TaskProxy task_proxy(*parent);
+    axiom_used_in_unrolling.assign(task_proxy.get_axioms().size(), false);
 
     /*
       (non)default_dependencies store for each variable v all derived
@@ -38,7 +39,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
     vector<vector<int>> nondefault_dependencies(
         task_proxy.get_variables().size());
     vector<vector<int>> default_dependencies(task_proxy.get_variables().size());
-    vector<vector<int>> axiom_ids_for_var(task_proxy.get_variables().size());
+    axiom_ids_for_var.assign(task_proxy.get_variables().size(), std::vector<int>());
     for (OperatorProxy axiom : task_proxy.get_axioms()) {
         EffectProxy effect = axiom.get_effects()[0];
         int head_var = effect.get_fact().get_variable().get_id();
@@ -85,8 +86,13 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
     unordered_set<int> default_value_needed =
         get_vars_with_relevant_default_value(
             nondefault_dependencies, default_dependencies, var_to_scc);
-
     for (int var : default_value_needed) {
+        //cout << "Variable " << var << " needs default value axiom." << endl;
+    }
+
+    for (int i = 0; i < task_proxy.get_variables().size(); ++i) {
+        int var = i;
+        //cout << "Processing variable " << var << endl;
         vector<int> &axiom_ids = axiom_ids_for_var[var];
         int default_value =
             task_proxy.get_variables()[var].get_default_axiom_value();
@@ -95,10 +101,14 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
             var_to_scc[var]->size() > 1) {
             // Only unroll variables that haven't been in unrolled SCCs yet
             if (!considered_variables_for_unrolling[var]) {
+                
                 unroll_negative_cycles(
-                    var, var_to_scc, axiom_ids_for_var);
+                    var, var_to_scc, axiom_ids_for_var, unrolling_axioms);
+
+
+                // Add unrolling axioms to default_value_axioms to expose them to the search
+                // These axioms are required to derive the non-default values of the unrolled variables
             }
-           
         } else if (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
             var_to_scc[var]->size() > 1) {
             /*
@@ -118,13 +128,129 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
             default_value_axioms.emplace_back(
                 FactPair(var, default_value), vector<FactPair>());
         } else {
-            add_default_value_axioms_for_var(
-                FactPair(var, default_value), axiom_ids);
+            /*add_default_value_axioms_for_var(
+                FactPair(var, default_value), axiom_ids, false);*/
         }
     }
     if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
         utils::g_log << "Variables created with unrolling: " << unrolling_variables.size() << endl;
+    }
+
+    for (UnrollingAxiom &axiom : unrolling_axioms) {
+        default_value_axioms.emplace_back(axiom.head, vector<FactPair>(axiom.condition.begin(), axiom.condition.end()));
+    }          
+        vector<vector<int>> unrolling_axiom_ids_for_var(get_num_variables());
+    /*for(UnrollingAxiom &axiom : unrolling_axioms) {
+        int head_var = axiom.head.var;
+        unrolling_axiom_ids_for_var[head_var].push_back(axiom.axiom_id);
+    }*/
+
+    vector<vector<int>> unrolling_nondefault_dependencies(
+        get_num_variables());
+    vector<vector<int>> unrolling_default_dependencies(get_num_variables());
+    /*for (UnrollingAxiom axiom : unrolling_axioms) {
+        int head_var = axiom.head.var;
+        for (FactPair cond : axiom.condition) {
+            int cond_var = cond.var;
+            if (cond.value == get_variable_default_axiom_value(cond_var)) {
+                unrolling_default_dependencies[head_var].push_back(cond_var);
+                //cout << "adding unrolling dependency from " << head_var << " to " << cond_var << endl;
+            } else {
+                //cout << "adding unrolling nondefault dependency from " << head_var << " to " << cond_var << endl;
+                unrolling_nondefault_dependencies[head_var].push_back(cond_var);
+            }
+            
+        }
+    }*/
+  
+    for (int i = 0; i < get_num_axioms(); ++i) {
+        if (axiom_used_in_unrolling[i]) {
+            continue;
+        }
+
+        int head_var = get_operator_effect(i, 0, true).var; // Axioms have only one effect
+        unrolling_axiom_ids_for_var[head_var].push_back(i);
+        for (int j = 0; j < get_num_operator_effect_conditions(i, 0, true); ++j) {
+            FactPair cond = get_operator_effect_condition(i, 0, j, true);
+            int cond_var = cond.var;
+            if (cond.value == get_variable_default_axiom_value(cond_var)) {
+                unrolling_default_dependencies[head_var].push_back(cond_var);
+            } else {
+                unrolling_nondefault_dependencies[head_var].push_back(cond_var);
+            }
+        }
+        /*EffectProxy effect = task_proxy.get_axioms()[i].get_effects()[0];
+        int head_var = effect.get_fact().get_variable().get_id();
+        unrolling_axiom_ids_for_var[head_var].push_back(i);
+        for (FactProxy cond : effect.get_conditions()) {
+            VariableProxy var_proxy = cond.get_variable();
+            if (var_proxy.is_derived()) {
+                int var = cond.get_variable().get_id();
+                if (cond.get_value() == var_proxy.get_default_axiom_value()) {
+                    unrolling_default_dependencies[head_var].push_back(var);
+                } else {
+                    unrolling_nondefault_dependencies[head_var].push_back(var);
+                }
+            }
+        }*/
+    }
+    
+    vector<vector<int>> unrolling_sccs;
+    vector<vector<int> *> unrolling_var_to_scc;
+
+    unrolling_sccs = sccs::compute_maximal_sccs(unrolling_nondefault_dependencies);
+    unrolling_var_to_scc =
+        vector<vector<int> *>(get_num_variables(), nullptr);
+    for (int i = 0; i < (int)unrolling_sccs.size(); ++i) {
+        for (int var : unrolling_sccs[i]) {
+            unrolling_var_to_scc[var] = &unrolling_sccs[i];
+        }
+    }
+    unordered_set<int> unrolling_default_needed = get_vars_with_relevant_default_value(
+        unrolling_nondefault_dependencies, unrolling_default_dependencies, unrolling_var_to_scc);
+    for (int unrolling_var : unrolling_default_needed) {
+        //cout << "Adding default value axioms for unrolling var " << unrolling_var << " with value " << get_variable_default_axiom_value(unrolling_var);
+        // TODO THISK DOESNT WORK FFS
+        for (int a : unrolling_axiom_ids_for_var[unrolling_var]) {
+            //cout << "  with axiom id " << a;
+        }
+        //cout << endl;
+        if (unrolling_var < unrolling_vars_start_index) {
+            add_default_value_axioms_for_var(
+            FactPair(unrolling_var, get_variable_default_axiom_value(unrolling_var)),
+            unrolling_axiom_ids_for_var[unrolling_var],
+            false,
+            unrolling_axioms);
+
+        } 
+        else {
+            add_default_value_axioms_for_var(
+            FactPair(unrolling_var, get_variable_default_axiom_value(unrolling_var)),
+            unrolling_axiom_ids_for_var[unrolling_var],
+            true,
+            unrolling_axioms);
+
+        }
+    }
+
+    for (OperatorProxy axiom : task_proxy.get_axioms()) {
+        EffectProxy effect = axiom.get_effects()[0];
+        int head_var = effect.get_fact().get_variable().get_id();
+        int head_val = effect.get_fact().get_value();
+        //cout << "Axiom: " << head_var << "=" << head_val << " <-";
+        for (FactProxy cond : effect.get_conditions()) {
+             //cout << " " << cond.get_variable().get_id() << "=" << cond.get_value();
+        }
+        //cout << endl;
+    }
+
+    for (const auto &axiom : default_value_axioms) {
+        //cout << "Axiom: " << axiom.head.var << "=" << axiom.head.value << " <-";
+        for (const auto &cond : axiom.condition) {
+            //cout << " " << cond.var << "=" << cond.value;
+        }
+        //cout << endl;
     }
 }
 
@@ -165,6 +291,43 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
             needed.emplace(goal.get_pair().var, default_value);
         }
     }
+    
+    for (int i = 0; i < get_num_axioms(); i++) {
+        for(int j = 0; j < get_num_operator_preconditions(i, true); j++) {
+            FactPair precond = get_operator_precondition(i, j, true);
+            int precond_var = precond.var;
+            bool is_derived = false;
+            if (precond_var >= unrolling_vars_start_index) {
+                is_derived = true;
+            } else {
+                is_derived = task_proxy.get_variables()[precond_var].is_derived();
+            }
+            if (is_derived) {
+                bool default_value =
+                    precond.value == get_variable_default_axiom_value(precond_var);
+                needed.emplace(precond.var, default_value);
+            }
+        }
+        for (int j = 0; j < get_num_operator_effects(i, true); j++) {
+            for (int k = 0; k < get_num_operator_effect_conditions(i, j, true); k++) {
+                FactPair cond = get_operator_effect_condition(i, j, k, true);
+                int cond_var = cond.var;
+                bool is_derived = false;
+                if (cond_var >= unrolling_vars_start_index) {
+                    is_derived = true;
+                } else {
+                    is_derived = task_proxy.get_variables()[cond_var].is_derived();
+                }
+                if (is_derived) {
+                    bool default_value =
+                        cond.value == get_variable_default_axiom_value(cond_var);
+                    needed.emplace(cond.var, default_value);
+                }
+            }
+        }
+    }
+
+/*
     for (OperatorProxy op : task_proxy.get_operators()) {
         for (FactProxy condition : op.get_preconditions()) {
             VariableProxy var_proxy = condition.get_variable();
@@ -184,7 +347,7 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
                 }
             }
         }
-    }
+    }*/
 
     deque<pair<int, bool>> to_process(needed.begin(), needed.end());
     while (!to_process.empty()) {
@@ -201,7 +364,8 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
         */
         if ((default_value) &&
             (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
-             var_to_scc[var]->size() > 1)) {
+             (var_to_scc[var]->size() > 1 &&
+              axioms != AxiomHandlingType::EXACT_NEGATIVE_CYCLES))) {
             continue;
         }
 
@@ -229,9 +393,10 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
 }
 
 void DefaultValueAxiomsTask::add_default_value_axioms_for_var(
-    FactPair head, vector<int> &axiom_ids) {
+    FactPair head, vector<int> &axiom_ids, bool variable_unrolled,
+    const vector<UnrollingAxiom> &unrolling_axioms) {
     TaskProxy task_proxy(*parent);
-
+    //cout << axiom_ids.size() << " axioms for variable " << head.var << endl;
     /*
       If no axioms change the variable to its non-default value,
       then the default is always true.
@@ -241,21 +406,55 @@ void DefaultValueAxiomsTask::add_default_value_axioms_for_var(
         return;
     }
 
-    vector<set<FactPair>> conditions_as_cnf;
-    conditions_as_cnf.reserve(axiom_ids.size());
-    for (int axiom_id : axiom_ids) {
-        OperatorProxy axiom = task_proxy.get_axioms()[axiom_id];
-        conditions_as_cnf.emplace_back();
-        for (FactProxy fact : axiom.get_effects()[0].get_conditions()) {
-            int var_id = fact.get_variable().get_id();
-            int num_vals = task_proxy.get_variables()[var_id].get_domain_size();
-            for (int value = 0; value < num_vals; ++value) {
-                if (value != fact.get_value()) {
-                    conditions_as_cnf.back().insert({var_id, value});
+    vector<set<FactPair>> conditions_as_cnf; 
+    //if (!variable_unrolled) { 
+        //cout << "OWO" << endl;
+        conditions_as_cnf.reserve(axiom_ids.size());
+        for (int axiom_id : axiom_ids) {
+            //cout << "Using axiom with id: " << axiom_id << endl;
+            conditions_as_cnf.emplace_back();
+            for (int j = 0; j < get_num_operator_effect_conditions(axiom_id, 0, true); ++j) {
+                FactPair cond = get_operator_effect_condition(axiom_id, 0, j, true);
+                int cond_var = cond.var;
+                int num_vals = get_variable_domain_size(cond_var);
+                for (int value = 0; value < num_vals; ++value) {
+                    if (value != cond.value) {
+                        conditions_as_cnf.back().insert({cond_var, value}); 
+                    }
+                }
+            }
+/*
+            OperatorProxy axiom = task_proxy.get_axioms()[axiom_id];
+            conditions_as_cnf.emplace_back();
+            for (FactProxy fact : axiom.get_effects()[0].get_conditions()) {
+                int var_id = fact.get_variable().get_id();
+                int num_vals = task_proxy.get_variables()[var_id].get_domain_size();
+                for (int value = 0; value < num_vals; ++value) {
+                    if (value != fact.get_value()) {
+                        conditions_as_cnf.back().insert({var_id, value});
+                    }
+                }
+            }*/
+        }
+    /* else {
+        //cout << "UWU" << endl;
+        int minus = parent->get_num_axioms();
+        conditions_as_cnf.reserve(axiom_ids.size());
+        for (int axiom_id : axiom_ids) {
+            //cout << "Using unrolling axiom with id: " << axiom_id << endl;
+            UnrollingAxiom axiom = unrolling_axioms[axiom_id - minus];
+            conditions_as_cnf.emplace_back();
+            for (FactPair fact : axiom.condition) {
+                int var_id = fact.var;
+                int num_vals = get_variable_domain_size(var_id);
+                for (int value = 0; value < num_vals; ++value) {
+                    if (value != fact.value) {
+                        conditions_as_cnf.back().insert({var_id, value});
+                    }
                 }
             }
         }
-    }
+    }*/
 
     // We can see multiplying out the cnf as collecting all hitting sets.
     set<FactPair> current;
@@ -265,6 +464,12 @@ void DefaultValueAxiomsTask::add_default_value_axioms_for_var(
         conditions_as_cnf, 0, current, current_vars, hitting_sets);
 
     for (const set<FactPair> &c : hitting_sets) {
+        vector<FactPair> new_conditions;
+        for (const FactPair &fact : c) {
+            new_conditions.push_back(fact);
+        }
+        
+        //cout << "Created new default value axiom: " << head << " <- " << new_conditions << endl;
         default_value_axioms.emplace_back(
             head, vector<FactPair>(c.begin(), c.end()));
     }
@@ -328,7 +533,8 @@ void DefaultValueAxiomsTask::collect_non_dominated_hitting_sets_recursively(
 void DefaultValueAxiomsTask::unroll_negative_cycles(
     int var,
     const vector<vector<int> *> &var_to_scc,
-    const vector<vector<int>> &axiom_ids_for_var) {
+    const vector<vector<int>> &axiom_ids_for_var,
+    vector<UnrollingAxiom> &unrolling_axioms) {
     // The maximum number of timestamps needed to keep the same semantics is equal the number of variables in the SCC
     int timestamps = var_to_scc[var]->size();
     // Store the mappings for the variables only for the previous and the current timestamp
@@ -412,14 +618,15 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 new_head = FactPair(
                     new_head_var,
                     get_operator_effect(a, 0, true).value);
-                default_value_axioms.emplace_back(
-                    new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+                unrolling_axioms.emplace_back(
+                    new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()), unrolling_axioms.size());
                 unrolling_axioms_counter++;
                 //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
                 if (base_condition) {
                     // Mark axiom so that we don't need to consider it again
                     base_condition_axioms[a] = true;
                 }
+                axiom_used_in_unrolling[a] = true;
             }
 
             // Create new axiom to propagate the non-default value
@@ -451,8 +658,8 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             new_conditions.emplace_back(FactPair(
                 new_propagation_var, 
                 non_default_value));
-            default_value_axioms.emplace_back(
-                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+            unrolling_axioms.emplace_back(
+                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()), unrolling_axioms.size());
             unrolling_axioms_counter++;
             //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
         }
@@ -512,6 +719,19 @@ int DefaultValueAxiomsTask::get_variable_default_axiom_value(int var) const {
 
     return unrolling_variables[var - unrolling_vars_start_index].axiom_default_value;
 }
+
+string DefaultValueAxiomsTask::get_fact_name(const FactPair &fact) const {
+    if (fact.var < unrolling_vars_start_index) {
+        return parent->get_fact_name(fact);
+    }
+
+    return "<none of those>";
+}
+
+vector<int> DefaultValueAxiomsTask::get_initial_state_values() const {
+    return parent->get_initial_state_values();
+}
+
 
 int DefaultValueAxiomsTask::get_operator_cost(int index, bool is_axiom) const {
     if (!is_axiom || index < default_value_axioms_start_index) {

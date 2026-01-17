@@ -67,6 +67,16 @@ struct Variable {
     }
 };
 
+struct UnrollingAxiom {
+    FactPair head;
+    std::vector<FactPair> condition;
+    int axiom_id;
+
+    UnrollingAxiom(FactPair head, std::vector<FactPair> &&condition, int axiom_id)
+        : head(head), condition(condition), axiom_id(axiom_id) {
+    }
+};
+
 
 class DefaultValueAxiomsTask : public DelegatingTask {
     AxiomHandlingType axioms;
@@ -76,13 +86,17 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     int unrolling_vars_start_index;
     std::vector<Variable> unrolling_variables;
     int unrolling_axioms_counter = 0;
+    std::vector<std::vector<int>> axiom_ids_for_var;
+    std::vector<bool> axiom_used_in_unrolling;
+    std::vector<UnrollingAxiom> unrolling_axioms;
 
     std::unordered_set<int> get_vars_with_relevant_default_value(
         const std::vector<std::vector<int>> &nondefault_dependencies,
         const std::vector<std::vector<int>> &default_dependencies,
         const std::vector<std::vector<int> *> &var_to_scc);
     void add_default_value_axioms_for_var(
-        FactPair head, std::vector<int> &axiom_ids);
+        FactPair head, std::vector<int> &axiom_ids, bool variable_unrolled,
+        const std::vector<UnrollingAxiom> &unrolling_axioms = {});
     void collect_non_dominated_hitting_sets_recursively(
         const std::vector<std::set<FactPair>> &set_of_sets, size_t index,
         std::set<FactPair> &hitting_set,
@@ -91,7 +105,8 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     void unroll_negative_cycles(
         int var,
         const std::vector<std::vector<int> *> &var_to_scc,
-        const std::vector<std::vector<int>> &axiom_ids_for_var);
+        const std::vector<std::vector<int>> &axiom_ids_for_var,
+        std::vector<UnrollingAxiom> &unrolling_axioms);
     std::map<int, int> create_unrolling_variable_mapping(
         const std::vector<int> &vars,
         int timestamps);
@@ -114,6 +129,8 @@ public:
     virtual int get_variable_domain_size(int var) const override;
     virtual int get_variable_axiom_layer(int var) const override;
     virtual int get_variable_default_axiom_value(int var) const override;
+    virtual std::string get_fact_name(const FactPair &fact) const override;
+    virtual std::vector<int> get_initial_state_values() const override;
 
     virtual int get_operator_cost(int index, bool is_axiom) const override;
     virtual std::string get_operator_name(
