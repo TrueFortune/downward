@@ -22,7 +22,7 @@ REVISIONS = ["7acb9a1", "8867cf3"] # random commit and latest commit from  2026-
 CONFIG_NICKS = [
     ("landmark-approximate", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative), lazy_greedy([hlm],reopen_closed=false))"]),
     ("landmark-approximate-cycles", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
-    ("landmark-unrolling", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=exact_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"])
+    ("landmark-unrolling", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=exact_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
     ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative)])"]),
     ("eager-greedy-add-approximate-cycle", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
