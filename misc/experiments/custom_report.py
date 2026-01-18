@@ -43,7 +43,7 @@ def domain_as_category(run1, run2):
     return run1["domain"]
 
 def create_scatter_plot_report(*args):
-    exp, config_nicks, revisions, attributes, pair_size, labels = args[0] # labels only accepts 2 values, for comparisons of 3 algorithms create separate reports
+    exp, config_nicks, revisions, attributes, pair_size = args[0] # labels only accepts 2 values, for comparisons of 3 algorithms create separate reports
     configs = []
     algorithm_pairs = []
     n = int(pair_size)
@@ -59,6 +59,29 @@ def create_scatter_plot_report(*args):
         revision_pairs = [(rev1, rev2) for rev1, rev2 in itertools.combinations(algorithms, 2)]
 
         for j, (rev1, rev2) in enumerate(revision_pairs):
+                if "unrolling" in rev1:
+                    xlabel = "Unrolling"
+                elif "approximate-cycle" in rev1:
+                    xlabel = "Approximate Negative Cycles"
+                elif "approximate" in rev1:
+                    xlabel = "Approximate Negative"
+
+                if "unrolling" in rev2:
+                    ylabel = "Unrolling"
+                elif "approximate-cycle" in rev2:
+                    ylabel = "Approximate Negative Cycles"
+                elif "approximate" in rev2:
+                    ylabel = "Approximate Negative"
+                if not "Unrolling" in [xlabel, ylabel]:
+                    continue
+                
+                if "-add-" in rev1:
+                    algo = "Add"
+                elif "-ff-" in rev1:
+                    algo = "FF"
+                elif "-lm-" in rev1:
+                    algo = "LM"
+                    
                 algorithm_pairs.append(
                     (
                         rev1,
@@ -70,12 +93,12 @@ def create_scatter_plot_report(*args):
         for algorithm_pair in algorithm_pairs:
             report = ScatterPlotReport(attributes=attribute, 
                                        filter_algorithm=[algorithm_pair[0], algorithm_pair[1]], 
-                                       xlabel=labels[0], 
-                                       ylabel=labels[1], 
+                                       xlabel=xlabel, 
+                                       ylabel=ylabel, 
                                        get_category=domain_as_category)
             outfile = os.path.join(
             exp.eval_dir,
             "%s-%s-%s-%s.%s" % (
-                exp.name, algorithm_pair[0], algorithm_pair[1], attribute, report.output_format))
+                xlabel, ylabel, algo, attribute, report.output_format))
             report(exp.eval_dir, outfile)
 
