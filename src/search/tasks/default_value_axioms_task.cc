@@ -57,7 +57,6 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
     vector<vector<int>> sccs;
     std::vector<std::vector<int> *> var_to_scc = compute_var_to_scc_from_nondefault_dependencies(nondefault_dependencies, sccs);
 
-
     unordered_set<int> default_needed = get_vars_with_relevant_default_value(
     nondefault_dependencies, default_dependencies, var_to_scc);
     for (int var : default_needed) {
@@ -457,6 +456,7 @@ tuple<vector<vector<int>>, vector<vector<int>>> DefaultValueAxiomsTask::create_n
       but only the indices that correspond to a variable ID of a derived
       variable actually have content.
      */
+    TaskProxy task_proxy(*parent);
     vector<vector<int>> nondefault_dependencies(get_num_variables());
     vector<vector<int>> default_dependencies(get_num_variables());
 
@@ -470,11 +470,19 @@ tuple<vector<vector<int>>, vector<vector<int>>> DefaultValueAxiomsTask::create_n
         for (int j = 0; j < get_num_operator_effect_conditions(i, 0, true); ++j) {
             FactPair cond = get_operator_effect_condition(i, 0, j, true);
             int cond_var = cond.var;
-            if (cond.value == get_variable_default_axiom_value(cond_var)) {
-                default_dependencies[head_var].push_back(cond_var);
+            bool is_derived = false;
+            if (cond_var >= unrolling_vars_start_index) {
+                is_derived = true;
             } else {
-                nondefault_dependencies[head_var].push_back(cond_var);
+                is_derived = task_proxy.get_variables()[cond_var].is_derived();
             }
+                if (is_derived) {
+                    if (cond.value == get_variable_default_axiom_value(cond_var)) {
+                        default_dependencies[head_var].push_back(cond_var);
+                    } else {
+                        nondefault_dependencies[head_var].push_back(cond_var);
+                }
+            } 
         }
     }
 
