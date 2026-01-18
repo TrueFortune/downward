@@ -18,7 +18,7 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["7acb9a1", "8867cf3"] # random commit and latest commit from  2026-01-15
+REVISIONS = ["7acb9a1", "ef8ad25"] # random commit and latest commit from  2026-01-15
 CONFIG_NICKS = [
     ("landmark-approximate", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative), lazy_greedy([hlm],reopen_closed=false))"]),
     ("landmark-approximate-cycles", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
