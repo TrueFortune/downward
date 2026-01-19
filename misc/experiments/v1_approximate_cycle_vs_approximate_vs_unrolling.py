@@ -18,7 +18,7 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["ef8ad25"] # latest commit from  2025-01-18
+REVISIONS = ["70cdf58"] # latest commit from  2025-01-19
 CONFIG_NICKS = [
     ("eager-greedy-lm-approximate", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative), lazy_greedy([hlm],reopen_closed=false))"]),
     ("eager-greedy-lm-approximate-cycles", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
@@ -70,9 +70,13 @@ exp.add_step("start", exp.start_runs)
 exp.add_step("parse", exp.parse)
 exp.add_fetcher(name="fetch")
 
-SPECIAL_ATTRIBUTES = [Attribute("unrolling_axioms", absolute=True), Attribute("unrolling_variables", absolute=True)]
+SPECIAL_ATTRIBUTES = [Attribute("default_value_axioms", absolute=True),
+                      Attribute("default_value_axioms_percentage", absolute=True),
+                      Attribute("unrolling_axioms", absolute=True), 
+                      Attribute("unrolling_axioms_percentage", absolute=True),
+                      Attribute("unrolling_variables", absolute=True)]
 ATTRIBUTES = exp.DEFAULT_TABLE_ATTRIBUTES + SPECIAL_ATTRIBUTES
-SCATTER_ATTRIBUTES = ["search_time", "memory", "initial_h_value", "expansions", "evaluations", "generated", "cost"]
+SCATTER_ATTRIBUTES = ["total_time", "memory", "initial_h_value", "expansions", "evaluations", "generated", "cost"]
 
 exp.add_absolute_report_step(attributes=ATTRIBUTES)
 #exp.add_comparison_table_step(attributes=ATTRIBUTES)
