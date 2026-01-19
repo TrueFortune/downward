@@ -76,7 +76,7 @@ SPECIAL_ATTRIBUTES = [Attribute("default_value_axioms", absolute=True),
                       Attribute("unrolling_axioms_percentage", function=arithmetic_mean, absolute=True),
                       Attribute("unrolling_variables", absolute=True)]
 ATTRIBUTES = exp.DEFAULT_TABLE_ATTRIBUTES + SPECIAL_ATTRIBUTES
-SCATTER_ATTRIBUTES = ["total_time", "memory", "initial_h_value", "expansions", "evaluations", "generated", "cost"]
+SCATTER_ATTRIBUTES = ["total_time", "memory", "initial_h_value", "expansions", "evaluations", "cost"]
 
 exp.add_absolute_report_step(attributes=ATTRIBUTES)
 #exp.add_comparison_table_step(attributes=ATTRIBUTES)
