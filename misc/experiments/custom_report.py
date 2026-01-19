@@ -117,13 +117,32 @@ def create_scatter_plot_report(*args):
                         algo
                     )
                 )
+        matplotlib_options = {
+            "font.family": "serif",
+            "font.weight": "normal",
+            # Used if more specific sizes not set.
+            "font.size": 30,
+            "axes.labelsize": 30,
+            "axes.titlesize": 45,
+            "legend.fontsize": 30,
+            "xtick.labelsize": 15,
+            "ytick.labelsize": 15,
+            "lines.markersize": 15,
+            "lines.markeredgewidth": 0.25,
+            "lines.linewidth": 1,
+            # Width and height in inches.
+            "figure.figsize": [8, 8],
+            "savefig.dpi": 100,
+        }
     for attribute in attributes:
         for algorithm_pair in algorithm_pairs:
             report = ScatterPlotReport(attributes=attribute, 
                                        filter_algorithm=[algorithm_pair[0], algorithm_pair[1]], 
                                        xlabel=algorithm_pair[2], 
                                        ylabel=algorithm_pair[3], 
-                                       get_category=domain_as_category)
+                                       get_category=domain_as_category,
+                                       show_missing=False,
+                                       matplotlib_options=matplotlib_options)
             outfile = os.path.join(
             exp.eval_dir,
             "%s-%s-%s-%s.%s" % (
