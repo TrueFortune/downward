@@ -71,9 +71,9 @@ exp.add_step("parse", exp.parse)
 exp.add_fetcher(name="fetch")
 
 SPECIAL_ATTRIBUTES = [Attribute("default_value_axioms", absolute=True),
-                      Attribute("default_value_axioms_percentage", function=geometric_mean),
+                      Attribute("default_value_axioms_percentage", function=geometric_mean, absolute=True),
                       Attribute("unrolling_axioms", absolute=True), 
-                      Attribute("unrolling_axioms_percentage", function=geometric_mean),
+                      Attribute("unrolling_axioms_percentage", function=geometric_mean, absolute=True),
                       Attribute("unrolling_variables", absolute=True)]
 ATTRIBUTES = exp.DEFAULT_TABLE_ATTRIBUTES + SPECIAL_ATTRIBUTES
 SCATTER_ATTRIBUTES = ["total_time", "memory", "initial_h_value", "expansions", "evaluations", "generated", "cost"]
