@@ -23,6 +23,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
       default_value_axioms_start_index(parent->get_num_axioms()),
       unrolling_vars_start_index(parent->get_num_variables()) {
     TaskProxy task_proxy(*parent);
+    utils::g_log << "Total axioms before task transformation " << task_proxy.get_axioms().size() << endl;
 
     if(axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         unordered_map<int, int> var_mapping;
@@ -87,29 +88,11 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
 
     if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
+        utils::g_log << "Percentage of unrolling axioms: " << (float)unrolling_axioms_counter / (task_proxy.get_axioms().size() + default_value_axioms.size()) << endl;
         utils::g_log << "Variables created with unrolling: " << unrolling_variables.size() << endl;
     }
-    utils::g_log << "Default Value Axioms created: " << default_value_axioms.size() << endl;
-
-    // Logging of all axioms for debugging purposes
-    /*for (OperatorProxy axiom : task_proxy.get_axioms()) {
-        EffectProxy effect = axiom.get_effects()[0];
-        int head_var = effect.get_fact().get_variable().get_id();
-        int head_val = effect.get_fact().get_value();
-        cout << "Axiom: " << head_var << "=" << head_val << " <-";
-        for (FactProxy cond : effect.get_conditions()) {
-             cout << " " << cond.get_variable().get_id() << "=" << cond.get_value();
-        }
-        cout << endl;
-    }
-
-    for (const auto &axiom : default_value_axioms) {
-        cout << "Axiom: " << axiom.head.var << "=" << axiom.head.value << " <-";
-        for (const auto &cond : axiom.condition) {
-            cout << " " << cond.var << "=" << cond.value;
-        }
-        cout << endl;
-    }*/
+    utils::g_log << "Default Value Axioms created: " << default_value_axioms.size() - unrolling_axioms_counter<< endl;
+    utils::g_log << "Percentage of default value axioms: " << (float)(default_value_axioms.size() - unrolling_axioms_counter) / (task_proxy.get_axioms().size() + default_value_axioms.size()) << endl;
 }
 
 /*
