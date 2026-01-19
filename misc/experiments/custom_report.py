@@ -6,6 +6,8 @@ import os
 
 import itertools
 
+from lab import tools
+
 def create_comparative_report(*args):
     exp, config_nicks, revisions, attributes, pair_size = args[0]
     configs = []
@@ -128,3 +130,12 @@ def create_scatter_plot_report(*args):
                 algorithm_pair[2], algorithm_pair[3], algorithm_pair[4], attribute, report.output_format))
             report(exp.eval_dir, outfile)
 
+def geometric_mean(values):
+    """Compute the geometric mean of a sequence of numbers.
+
+    >>> round(geometric_mean([2, 8]), 2)
+    4.0
+    """
+    assert None not in values
+    exp = 1.0 / len(values)
+    return tools.product([val**exp for val in values])
