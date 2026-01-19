@@ -122,8 +122,8 @@ def create_scatter_plot_report(*args):
             "font.weight": "normal",
             # Used if more specific sizes not set.
             "font.size": 30,
-            "axes.labelsize": 30,
-            "axes.titlesize": 45,
+            "axes.labelsize": 20,
+            "axes.titlesize": 35,
             "legend.fontsize": 20,
             "xtick.labelsize": 15,
             "ytick.labelsize": 15,
