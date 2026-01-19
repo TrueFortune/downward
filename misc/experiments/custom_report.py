@@ -28,11 +28,11 @@ def create_comparative_report(*args):
                 continue
             if (not ("-add-" in rev1 and "-add-" in rev2)) and (not ("-ff-" in rev1 and "-ff-" in rev2)) and (not ("-lm-" in rev1 and "-lm-" in rev2)):
                 continue
-            # Ensure unrolling is always on the left side
-            if "unrolling" in rev2: 
-                rev2_temp = rev1
-                rev1 = rev2
-                rev2 = rev2_temp
+            # Ensure unrolling is always on the right side
+            if "unrolling" in rev1: 
+                rev1_temp = rev2
+                rev2 = rev1
+                rev1 = rev1_temp
 
             algorithm_pairs.append(
                 (
