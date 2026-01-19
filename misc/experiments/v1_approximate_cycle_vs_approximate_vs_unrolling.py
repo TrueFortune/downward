@@ -18,11 +18,16 @@ ARCHIVE_PATH = "ai/downward/unrolling"
 REPO_DIR = os.environ["DOWNWARD_REPO"]
 BENCHMARKS_DIR = os.environ["DOWNWARD_BENCHMARKS"]
 BUILDS = ["release"]
-REVISIONS = ["939a69c"] # latest commit from  2025-12-30
+REVISIONS = ["ef8ad25"] # latest commit from  2025-01-18
 CONFIG_NICKS = [
-    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
+    ("eager-greedy-lm-approximate", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative), lazy_greedy([hlm],reopen_closed=false))"]),
+    ("eager-greedy-lm-approximate-cycles", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=approximate_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
+    ("eager-greedy-lm-unrolling", ["--search", "let(hlm, landmark_sum(lm_reasonable_orders_hps(lm_rhw()),pref=false, axioms=exact_negative_cycles), lazy_greedy([hlm],reopen_closed=false))"]),
+    ("eager-greedy-add-approximate", ["--search", "eager_greedy([add(axioms=approximate_negative)])"]),
+    ("eager-greedy-add-approximate-cycle", ["--search", "eager_greedy([add(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-add-unrolling", ["--search", "eager_greedy([add(axioms=exact_negative_cycles)])"]),
-    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
+    ("eager-greedy-ff-approximate", ["--search", "eager_greedy([ff(axioms=approximate_negative)])"]),
+    ("eager-greedy-ff-approximate-cycle", ["--search", "eager_greedy([ff(axioms=approximate_negative_cycles)])"]),
     ("eager-greedy-ff-unrolling", ["--search", "eager_greedy([ff(axioms=exact_negative_cycles)])"]),
 ]
 
@@ -37,7 +42,7 @@ CONFIGS = [
 SUITE = ["drones-horndl", "queens-horndl", "psr-middle", "psr-large"] # all suites that use unrolling
 
 ENVIRONMENT = BaselSlurmEnvironment(
-    partition="infai_3",
+    partition="infai_2",
     email="patrick01.weber@stud.unibas.ch",
     memory_per_cpu="3872M",
     export=["PATH"],
@@ -71,9 +76,9 @@ SCATTER_ATTRIBUTES = ["search_time", "memory", "initial_h_value", "expansions", 
 
 exp.add_absolute_report_step(attributes=ATTRIBUTES)
 #exp.add_comparison_table_step(attributes=ATTRIBUTES)
-exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES, 2])
+exp.add_step("make-comparison-tables", create_comparative_report, [exp, CONFIG_NICKS, REVISIONS, ATTRIBUTES, 3])
 #exp.add_scatter_plot_step(relative=False, attributes=["planner_time", "search_time", "memory", "initial_h_value", "expansions", "evaluations"])
-exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES, 2, ["Approximate Negative Cycles", "Unrolling"]])
+exp.add_step("make_scatter_plots", create_scatter_plot_report, [exp, CONFIG_NICKS, REVISIONS, SCATTER_ATTRIBUTES, 3])
 
 #exp.add_archive_step(ARCHIVE_PATH)
 #exp.add_archive_eval_dir_step(ARCHIVE_PATH)
