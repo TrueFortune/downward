@@ -124,10 +124,10 @@ def create_scatter_plot_report(*args):
             "font.size": 30,
             "axes.labelsize": 30,
             "axes.titlesize": 45,
-            "legend.fontsize": 30,
+            "legend.fontsize": 25,
             "xtick.labelsize": 15,
             "ytick.labelsize": 15,
-            "lines.markersize": 15,
+            "lines.markersize": 10,
             "lines.markeredgewidth": 0.25,
             "lines.linewidth": 1,
             # Width and height in inches.
