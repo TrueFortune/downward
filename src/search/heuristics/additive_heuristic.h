@@ -68,7 +68,7 @@ public:
     AdditiveHeuristic(
         tasks::AxiomHandlingType axioms,
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
-        const std::string &description, utils::Verbosity verbosity);
+        const std::string &description, utils::Verbosity verbosity, std::vector<tasks::ImprovementType> improvements = {});
 
     /*
       TODO: The two methods below are temporarily needed for the CEGAR

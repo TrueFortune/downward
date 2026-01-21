@@ -56,7 +56,7 @@ public:
     ContextEnhancedAdditiveHeuristic(
         tasks::AxiomHandlingType axioms,
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
-        const std::string &description, utils::Verbosity verbosity);
+        const std::string &description, utils::Verbosity verbosity, std::vector<tasks::ImprovementType> improvements = {});
     ~ContextEnhancedAdditiveHeuristic();
     virtual bool dead_ends_are_reliable() const override;
 };

@@ -17,13 +17,24 @@ using utils::ExitCode;
 
 namespace tasks {
 DefaultValueAxiomsTask::DefaultValueAxiomsTask(
-    const shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms)
+    const shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, vector<ImprovementType> improvements)
     : DelegatingTask(parent),
       axioms(axioms),
       default_value_axioms_start_index(parent->get_num_axioms()),
       unrolling_vars_start_index(parent->get_num_variables()) {
     TaskProxy task_proxy(*parent);
     utils::g_log << "Total axioms before task transformation " << task_proxy.get_axioms().size() << endl;
+    for (ImprovementType improvement : improvements) {
+        switch (improvement) {
+            case ImprovementType::owo:
+                utils::g_log << "OWO" << endl;
+                break;
+            case ImprovementType::awa:
+                utils::g_log << "AWA" << endl;
+                break;
+        }
+    }
+    exit(11);
 
     if(axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         unordered_map<int, int> var_mapping;
@@ -664,11 +675,11 @@ int DefaultValueAxiomsTask::get_num_axioms() const {
 }
 
 shared_ptr<AbstractTask> get_default_value_axioms_task_if_needed(
-    const shared_ptr<AbstractTask> &task, AxiomHandlingType axioms) {
+    const shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<ImprovementType> improvements) {
     TaskProxy proxy(*task);
     if (task_properties::has_axioms(proxy)) {
         return make_shared<tasks::DefaultValueAxiomsTask>(
-            DefaultValueAxiomsTask(task, axioms));
+            DefaultValueAxiomsTask(task, axioms, improvements));
     }
     return task;
 }
@@ -686,6 +697,17 @@ tuple<AxiomHandlingType> get_axioms_arguments_from_options(
     return make_tuple<AxiomHandlingType>(opts.get<AxiomHandlingType>("axioms"));
 }
 
+void add_improvements_option_to_feature(plugins::Feature &feature) {
+    feature.add_list_option<ImprovementType>(
+        "improvements",
+        "LOREM IPSUM DOLOREM");
+}
+
+tuple<vector<ImprovementType>> get_improvements_arguments_from_options(
+    const plugins::Options &opts) {
+    return make_tuple<vector<ImprovementType>>(opts.get_list<ImprovementType>("improvements"));
+}
+
 static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
     {{"approximate_negative",
       "Overapproximate negated axioms for all derived variables by "
@@ -700,4 +722,8 @@ static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
       "explosion."},
     {"exact_negative_cycles",
       "PLACEHOLDER"}}); // TODO: add description
+
+static plugins::TypedEnumPlugin<ImprovementType> _improvement_enum_plugin(
+    {{"owo", "owo description"},
+     {"awa", "awa description"}});
 }

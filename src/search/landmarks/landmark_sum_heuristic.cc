@@ -34,7 +34,7 @@ LandmarkSumHeuristic::LandmarkSumHeuristic(
     const shared_ptr<LandmarkFactory> &lm_factory, bool pref, bool prog_goal,
     bool prog_gn, bool prog_r, const shared_ptr<AbstractTask> &transform,
     bool cache_estimates, const string &description, utils::Verbosity verbosity,
-    tasks::AxiomHandlingType axioms)
+    tasks::AxiomHandlingType axioms, vector<tasks::ImprovementType> improvements)
     : LandmarkHeuristic(
           pref,
           tasks::get_default_value_axioms_task_if_needed(transform, axioms),

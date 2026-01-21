@@ -40,6 +40,11 @@ enum class AxiomHandlingType {
     EXACT_NEGATIVE_CYCLES
 };
 
+enum class ImprovementType {
+    owo,
+    awa
+};
+
 struct DefaultValueAxiom {
     FactPair head;
     std::vector<FactPair> condition;
@@ -118,7 +123,7 @@ class DefaultValueAxiomsTask : public DelegatingTask {
 
 public:
     explicit DefaultValueAxiomsTask(
-        const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms);
+        const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, std::vector<ImprovementType> improvements = {});
     virtual ~DefaultValueAxiomsTask() override = default;
 
     virtual int get_num_variables() const override;
@@ -152,9 +157,13 @@ public:
 };
 
 extern std::shared_ptr<AbstractTask> get_default_value_axioms_task_if_needed(
-    const std::shared_ptr<AbstractTask> &task, AxiomHandlingType axioms);
+    const std::shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<ImprovementType> improvements = {});
 extern void add_axioms_option_to_feature(plugins::Feature &feature);
+extern void add_improvements_option_to_feature(plugins::Feature &feature);
 extern std::tuple<AxiomHandlingType> get_axioms_arguments_from_options(
+    const plugins::Options &opts);
+
+extern std::tuple<std::vector<ImprovementType>> get_improvements_arguments_from_options(
     const plugins::Options &opts);
 }
 

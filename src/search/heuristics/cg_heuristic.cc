@@ -19,9 +19,9 @@ namespace cg_heuristic {
 CGHeuristic::CGHeuristic(
     int max_cache_size, tasks::AxiomHandlingType axioms,
     const shared_ptr<AbstractTask> &transform, bool cache_estimates,
-    const string &description, utils::Verbosity verbosity)
+    const string &description, utils::Verbosity verbosity, vector<tasks::ImprovementType> improvements)
     : Heuristic(
-          tasks::get_default_value_axioms_task_if_needed(transform, axioms),
+          tasks::get_default_value_axioms_task_if_needed(transform, axioms, improvements),
           cache_estimates, description, verbosity),
       cache_hits(0),
       cache_misses(0),
