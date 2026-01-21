@@ -37,7 +37,7 @@ LandmarkSumHeuristic::LandmarkSumHeuristic(
     tasks::AxiomHandlingType axioms, vector<tasks::ImprovementType> improvements)
     : LandmarkHeuristic(
           pref,
-          tasks::get_default_value_axioms_task_if_needed(transform, axioms),
+          tasks::get_default_value_axioms_task_if_needed(transform, axioms, improvements),
           cache_estimates, description, verbosity),
       dead_ends_reliable(are_dead_ends_reliable(lm_factory, task_proxy)) {
     if (log.is_at_least_normal()) {
