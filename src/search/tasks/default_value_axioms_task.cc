@@ -367,7 +367,7 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             variables_used_for_unrolling[v] = true;
             for (int a : axiom_ids_for_var[v]) {
                 axioms_used_for_unrolling[a] = true;
-                if (cycle_independent_axioms[a]) {
+                if (cycle_independent_axioms[a] && !replace_propagation_axioms) {
                     continue;
                 }
                 int new_conditions_size = get_num_operator_effect_conditions(a, 0, true);
@@ -433,44 +433,46 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             }
 
         // Finally, create a propagation axiom to propagate the non-default value to the next timestamp
-        int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
-        int new_propagation_head_var;
-        int new_propagation_var;
-        if (prune_unreachable) {
-            if (prev_mapping.count(v)) {
-                new_propagation_var = prev_mapping.at(v);
-                if (t == timestamps - 2) {
-                    // Last timestamp uses original variable
-                    new_propagation_head_var = v;
+        if (!replace_propagation_axioms) {
+            int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
+            int new_propagation_head_var;
+            int new_propagation_var;
+            if (prune_unreachable) {
+                if (prev_mapping.count(v)) {
+                    new_propagation_var = prev_mapping.at(v);
+                    if (t == timestamps - 2) {
+                        // Last timestamp uses original variable
+                        new_propagation_head_var = v;
+                    }
+                    else if (curr_mapping.count(v)) {
+                        new_propagation_head_var = curr_mapping.at(v);
+                    }
+                    else{
+                        new_propagation_head_var = initialize_new_unrolling_var(v, t + 1, timestamps);
+                        curr_mapping[v] = new_propagation_head_var;
+                    }
                 }
-                else if (curr_mapping.count(v)) {
-                    new_propagation_head_var = curr_mapping.at(v);
-                }
-                else{
-                    new_propagation_head_var = initialize_new_unrolling_var(v, t + 1, timestamps);
-                    curr_mapping[v] = new_propagation_head_var;
+                else {
+                    // Variable unreachable, can be ignored
+                    continue;
                 }
             }
             else {
-                // Variable unreachable, can be ignored
-                continue;
+                new_propagation_var = get_unrolling_variable_id(var_mapping, v, t);
+                new_propagation_head_var = get_unrolling_variable_id(var_mapping, v, t + 1);
             }
-        }
-        else {
-            new_propagation_var = get_unrolling_variable_id(var_mapping, v, t);
-            new_propagation_head_var = get_unrolling_variable_id(var_mapping, v, t + 1);
-        }
-        new_head = FactPair(
-                new_propagation_head_var,
+            new_head = FactPair(
+                    new_propagation_head_var,
+                    non_default_value);
+            new_conditions.clear();
+            new_conditions.emplace_back( 
+                new_propagation_var,
                 non_default_value);
-        new_conditions.clear();
-        new_conditions.emplace_back( 
-            new_propagation_var,
-            non_default_value);
-        default_value_axioms.emplace_back(
-            new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
-        ++unrolling_axioms_counter;
-        //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
+            default_value_axioms.emplace_back(
+                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+            ++unrolling_axioms_counter;
+            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
+            }
         }
     }
 }
