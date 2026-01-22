@@ -41,8 +41,8 @@ enum class AxiomHandlingType {
 };
 
 enum class ImprovementType {
-    owo,
-    awa
+    PRUNE_UNREACHABLE,
+    REPLACE_PROPAGATION_AXIOMS
 };
 
 struct DefaultValueAxiom {
@@ -87,6 +87,7 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     std::vector<UnrollingVariable> unrolling_variables;
     int unrolling_axioms_counter = 0;
     std::vector<bool> axioms_used_for_unrolling;
+    std::vector<bool> cycle_independent_axioms;
     
     std::unordered_set<int> get_vars_with_relevant_default_value(
         const std::vector<std::vector<int>> &nondefault_dependencies,
@@ -103,7 +104,10 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         int var,
         const std::vector<std::vector<int> *> &var_to_scc,
         const std::vector<std::vector<int>> &axiom_ids_for_var,
-        std::unordered_map<int,int> &var_mapping);
+        std::unordered_map<int,int> &var_mapping,
+        std::unordered_map<int,int> &prev_mapping,
+        std::unordered_map<int,int> &curr_mapping,
+        std::vector<ImprovementType> &improvements);
     void create_unrolling_variable_mapping_and_initialize_unrolling_variables(
         const std::vector<int> &vars,
         std::unordered_map<int, int> &var_mapping);
@@ -114,13 +118,16 @@ class DefaultValueAxiomsTask : public DelegatingTask {
     void initialize_new_unrolling_vars(
         int var,
         int timestamps);
+    int initialize_new_unrolling_var(
+        int var,
+        int timestamps,
+        int max_timestamps);
     std::tuple<std::vector<std::vector<int>>, 
         std::vector<std::vector<int>>> create_nondefault_and_default_dependencies_for_all_axioms();
     std::vector<std::vector<int>> create_axiom_ids_for_all_vars();
     std::vector<std::vector<int> *> compute_var_to_scc_from_nondefault_dependencies(
         std::vector<std::vector<int>> &nondefault_dependencies,
         std::vector<std::vector<int>> &sccs);
-
 public:
     explicit DefaultValueAxiomsTask(
         const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, std::vector<ImprovementType> improvements = {});

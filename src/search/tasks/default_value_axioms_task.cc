@@ -24,22 +24,15 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
       unrolling_vars_start_index(parent->get_num_variables()) {
     TaskProxy task_proxy(*parent);
     utils::g_log << "Total axioms before task transformation " << task_proxy.get_axioms().size() << endl;
-    for (ImprovementType improvement : improvements) {
-        switch (improvement) {
-            case ImprovementType::owo:
-                utils::g_log << "OWO" << endl;
-                break;
-            case ImprovementType::awa:
-                utils::g_log << "AWA" << endl;
-                break;
-        }
-    }
-    exit(11);
+    
 
     if(axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         unordered_map<int, int> var_mapping;
+        unordered_map<int, int> prev_mapping;
+        unordered_map<int, int> curr_mapping;
         axioms_used_for_unrolling.assign(get_num_axioms(), false);
         variables_used_for_unrolling.assign(get_num_variables(), false);
+        cycle_independent_axioms.assign(get_num_axioms(), false);
         // We only need these variables for the preprocessing step
         auto [pre_nondefault_dependencies, pre_default_dependencies] = create_nondefault_and_default_dependencies_for_all_axioms();
         std::vector<std::vector<int>> pre_axiom_ids_for_var = create_axiom_ids_for_all_vars();
@@ -59,7 +52,7 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
             */
             if(pre_var_to_scc[i]->size() > 1 && !variables_used_for_unrolling[i]) {
                 unroll_negative_cycles(
-                    i, pre_var_to_scc, pre_axiom_ids_for_var, var_mapping);
+                    i, pre_var_to_scc, pre_axiom_ids_for_var, var_mapping, prev_mapping, curr_mapping, improvements);
             }
         }
     }
@@ -308,22 +301,78 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     int var,
     const vector<vector<int> *> &var_to_scc,
     const vector<vector<int>> &axiom_ids_for_var,
-    unordered_map<int, int> &var_mapping) {
+    unordered_map<int, int> &var_mapping,
+    unordered_map<int, int> &prev_mapping,
+    unordered_map<int, int> &curr_mapping,
+    vector<ImprovementType> &improvements) {
     // The maximum number of timestamps needed to keep the same semantics is equal the number of variables in the SCC
     int timestamps = var_to_scc[var]->size();
-    create_unrolling_variable_mapping_and_initialize_unrolling_variables(*var_to_scc[var], var_mapping);
+    bool prune_unreachable = 
+        (std::find(improvements.begin(), improvements.end(), ImprovementType::PRUNE_UNREACHABLE) != improvements.end());
+    bool replace_propagation_axioms = 
+        (std::find(improvements.begin(), improvements.end(), ImprovementType::REPLACE_PROPAGATION_AXIOMS) != improvements.end());
+
+    if (!prune_unreachable) {
+        create_unrolling_variable_mapping_and_initialize_unrolling_variables(*var_to_scc[var], var_mapping);
+    }
     //cout << "Unrolling SCC with " << var_to_scc[var]->size() << " variables" << endl;
     vector<FactPair> new_conditions;
     FactPair cond(0,0);
     FactPair new_head(0,0);
+
+    // Create cycle-independent axioms first (axioms that do not depend on any variable in the current SCC)
     for (int v : *var_to_scc[var]) {
-        variables_used_for_unrolling[v] = true;
         for (int a : axiom_ids_for_var[v]) {
-            axioms_used_for_unrolling[a] = true;
             int new_conditions_size = get_num_operator_effect_conditions(a, 0, true);
-            for (int t = 0; t < timestamps - 1; ++t) {
+            new_conditions.clear();
+            new_conditions.reserve(new_conditions_size);
+            for (int c = 0; c < new_conditions_size; ++c) {
+                cond = get_operator_effect_condition(a, 0, c, true);
+                if (var_to_scc[cond.var] != var_to_scc[var]) {
+                    // Not in the current SCC, keep condition as is
+                    new_conditions.emplace_back(cond);
+                }
+                else {
+                    // In same SCC, continue with the next axiom
+                    break;
+                }
+            }
+            // Variable not cycle independent, can be skipped
+            if ((int)new_conditions.size() < new_conditions_size) {
+                continue;
+            }
+            int new_head_var;
+            if (prune_unreachable) {
+                new_head_var = initialize_new_unrolling_var(v, 0, timestamps);
+                curr_mapping[v] = new_head_var;
+            }
+            else {
+                new_head_var = var_mapping.at(v);
+            }
+            new_head = FactPair(
+                new_head_var,
+                get_operator_effect(a, 0, true).value);
+            default_value_axioms.emplace_back(
+                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+            ++unrolling_axioms_counter;
+            cycle_independent_axioms[a] = true;
+            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
+        }
+    }
+    // Next, create cycle-dependent axioms (axioms that depend on at least one variable in the current SCC)
+    for (int t = 0; t < timestamps - 1; ++t) {
+        prev_mapping = std::move(curr_mapping);
+        curr_mapping.clear();
+        for (int v : *var_to_scc[var]) {
+            variables_used_for_unrolling[v] = true;
+            for (int a : axiom_ids_for_var[v]) {
+                axioms_used_for_unrolling[a] = true;
+                if (cycle_independent_axioms[a]) {
+                    continue;
+                }
+                int new_conditions_size = get_num_operator_effect_conditions(a, 0, true);
                 new_conditions.clear();
-                bool unaffected_from_unrolling = true; // Stays true if all variables of the condition are not part of the same SCC
+                new_conditions.reserve(new_conditions_size);
                 for (int c = 0; c < new_conditions_size; ++c) {
                     cond = get_operator_effect_condition(a, 0, c, true);
                     if (var_to_scc[cond.var] != var_to_scc[var]) {
@@ -332,15 +381,44 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     }
                     else {
                         // Considered variable is part of the current SCC, need to unroll
-                        unaffected_from_unrolling = false;
+                        int new_var;
+                        if (prune_unreachable) {
+                            if (prev_mapping.count(cond.var)) {
+                                new_var = prev_mapping.at(cond.var);
+                            }
+                            else {
+                                // Variable unreachable, since we have a stratified axiom program
+                                // we can ignore the check whether this variable appears as it's default value
+                                // since it can only be set to its non-default value if it is reachable
+                                break;
+                            }
+                        }
+                        else {
+                            new_var = get_unrolling_variable_id(var_mapping, cond.var, t);
+                        }
                         new_conditions.emplace_back(
-                            get_unrolling_variable_id(var_mapping, cond.var, t), 
+                            new_var, 
                             cond.value);
                     }
+                } 
+                // Variable unreachable, can be skipped (only applies to and will ever be reached
+                // from the prune_unreachable improvement)
+                if ((int)new_conditions.size() < new_conditions_size) {
+                    continue;
                 }
                 int new_head_var;
-                if (unaffected_from_unrolling) {
-                    new_head_var = var_mapping.at(v);
+                if (prune_unreachable) {
+                    if (t == timestamps - 2) {
+                        // Last timestamp uses original variable
+                        new_head_var = v;
+                    }
+                    else if (curr_mapping.count(v)) {
+                        new_head_var = curr_mapping.at(v);
+                    }
+                    else{
+                        new_head_var = initialize_new_unrolling_var(v, t + 1, timestamps);
+                        curr_mapping[v] = new_head_var;
+                    }
                 }
                 else {
                     new_head_var = get_unrolling_variable_id(var_mapping, v, t + 1);
@@ -352,33 +430,51 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
                 ++unrolling_axioms_counter;
                 //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
+            }
 
-                // If the body doesn't contain any variables of the current SCC, we only need to create the axiom for t=0
-                if (unaffected_from_unrolling) {
-                    break;
+        // Finally, create a propagation axiom to propagate the non-default value to the next timestamp
+        int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
+        int new_propagation_head_var;
+        int new_propagation_var;
+        if (prune_unreachable) {
+            if (prev_mapping.count(v)) {
+                new_propagation_var = prev_mapping.at(v);
+                if (t == timestamps - 2) {
+                    // Last timestamp uses original variable
+                    new_propagation_head_var = v;
+                }
+                else if (curr_mapping.count(v)) {
+                    new_propagation_head_var = curr_mapping.at(v);
+                }
+                else{
+                    new_propagation_head_var = initialize_new_unrolling_var(v, t + 1, timestamps);
+                    curr_mapping[v] = new_propagation_head_var;
                 }
             }
+            else {
+                // Variable unreachable, can be ignored
+                continue;
+            }
         }
-
-        // Create new axioms to propagate the non-default value
-        for (int t = 0; t < timestamps - 1; ++t) {
-            int non_default_value = 1 - get_variable_default_axiom_value(v); // Either 0 -> 1 or 1 -> 0
-            new_head = FactPair(
-                    get_unrolling_variable_id(var_mapping, v, t + 1),
-                    non_default_value);
-            new_conditions.clear();
-            new_conditions.emplace_back(
-                get_unrolling_variable_id(var_mapping, v, t), 
+        else {
+            new_propagation_var = get_unrolling_variable_id(var_mapping, v, t);
+            new_propagation_head_var = get_unrolling_variable_id(var_mapping, v, t + 1);
+        }
+        new_head = FactPair(
+                new_propagation_head_var,
                 non_default_value);
-            default_value_axioms.emplace_back(
-                new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
-            ++unrolling_axioms_counter;
-            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
+        new_conditions.clear();
+        new_conditions.emplace_back( 
+            new_propagation_var,
+            non_default_value);
+        default_value_axioms.emplace_back(
+            new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
+        ++unrolling_axioms_counter;
+        //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
         }
-
-        
     }
 }
+
 
 int DefaultValueAxiomsTask::get_unrolling_variable_id(
     const unordered_map<int, int> &var_mapping, 
@@ -429,16 +525,22 @@ void DefaultValueAxiomsTask::initialize_new_unrolling_vars(
     int var,
     int timestamps) {
     for (int t = 0; t < timestamps - 1; ++t) { // No need for last timestamp, as it uses the original variable
-        unrolling_variables.emplace_back(
-            2, // Domain size, derived variables are binary
-            get_variable_name(var) + "_" + to_string(t), // Name
-            get_variable_axiom_layer(var), // Axiom layer stays the same
-            get_variable_default_axiom_value(var), // Default axiom value stays the same
-            t, // Current timestamp
-            timestamps // Max timestamps
-        );
-        //cout << "Created new unrolling variable: " << unrolling_variables.back().name << " and id " << get_num_variables() - 1 << endl;
+        initialize_new_unrolling_var(var, t, timestamps);
     }
+}
+
+int DefaultValueAxiomsTask::initialize_new_unrolling_var(
+    int var, int timestamp, int max_timestamps) {
+    unrolling_variables.emplace_back(
+        2, // Domain size, derived variables are binary
+        get_variable_name(var) + "_" + to_string(timestamp), // Name
+        get_variable_axiom_layer(var), // Axiom layer stays the same
+        get_variable_default_axiom_value(var), // Default axiom value stays the same
+        timestamp, // Current timestamp
+        max_timestamps // Max timestamps
+    );
+    //cout << "Created new unrolling variable: " << unrolling_variables.back().name << " and id " << get_num_variables() - 1 << endl;
+    return get_num_variables() - 1;
 }
 
 tuple<vector<vector<int>>, vector<vector<int>>> DefaultValueAxiomsTask::create_nondefault_and_default_dependencies_for_all_axioms() {
@@ -700,12 +802,18 @@ tuple<AxiomHandlingType> get_axioms_arguments_from_options(
 void add_improvements_option_to_feature(plugins::Feature &feature) {
     feature.add_list_option<ImprovementType>(
         "improvements",
-        "LOREM IPSUM DOLOREM");
+        "LOREM IPSUM DOLOREM",
+        plugins::ArgumentInfo::NO_DEFAULT 
+    );
 }
 
 tuple<vector<ImprovementType>> get_improvements_arguments_from_options(
     const plugins::Options &opts) {
-    return make_tuple<vector<ImprovementType>>(opts.get_list<ImprovementType>("improvements"));
+    vector<ImprovementType> improvements;
+    if (opts.contains("improvements")) {
+        improvements = opts.get_list<ImprovementType>("improvements");
+    }
+    return make_tuple(improvements);
 }
 
 static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
@@ -724,6 +832,6 @@ static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
       "PLACEHOLDER"}}); // TODO: add description
 
 static plugins::TypedEnumPlugin<ImprovementType> _improvement_enum_plugin(
-    {{"owo", "owo description"},
-     {"awa", "awa description"}});
+    {{"prune_unreachable", "Does not create axioms and variables that are not reachable."},
+    {"replace_propagation_axioms", "Creates more cycle-independent axioms to replace propagation axioms."}});
 }
