@@ -46,7 +46,7 @@ public:
     explicit CGHeuristic(
         int max_cache_size, tasks::AxiomHandlingType axiom_hanlding,
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
-        const std::string &description, utils::Verbosity verbosity, std::vector<tasks::ImprovementType> improvements = {});
+        const std::string &description, utils::Verbosity verbosity, std::vector<tasks::UnrollingOptionType> unrolling_options = {});
     virtual bool dead_ends_are_reliable() const override;
 };
 }

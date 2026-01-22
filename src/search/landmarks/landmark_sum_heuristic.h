@@ -27,7 +27,7 @@ public:
         bool prog_goal, bool prog_gn, bool prog_r,
         const std::shared_ptr<AbstractTask> &transform, bool cache_estimates,
         const std::string &description, utils::Verbosity verbosity,
-        tasks::AxiomHandlingType axioms, std::vector<tasks::ImprovementType> improvements = {});
+        tasks::AxiomHandlingType axioms, std::vector<tasks::UnrollingOptionType> unrolling_options = {});
 
     virtual bool dead_ends_are_reliable() const override;
 };

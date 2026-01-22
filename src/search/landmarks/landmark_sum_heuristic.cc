@@ -34,10 +34,10 @@ LandmarkSumHeuristic::LandmarkSumHeuristic(
     const shared_ptr<LandmarkFactory> &lm_factory, bool pref, bool prog_goal,
     bool prog_gn, bool prog_r, const shared_ptr<AbstractTask> &transform,
     bool cache_estimates, const string &description, utils::Verbosity verbosity,
-    tasks::AxiomHandlingType axioms, vector<tasks::ImprovementType> improvements)
+    tasks::AxiomHandlingType axioms, vector<tasks::UnrollingOptionType> unrolling_options)
     : LandmarkHeuristic(
           pref,
-          tasks::get_default_value_axioms_task_if_needed(transform, axioms, improvements),
+          tasks::get_default_value_axioms_task_if_needed(transform, axioms, unrolling_options),
           cache_estimates, description, verbosity),
       dead_ends_reliable(are_dead_ends_reliable(lm_factory, task_proxy)) {
     if (log.is_at_least_normal()) {

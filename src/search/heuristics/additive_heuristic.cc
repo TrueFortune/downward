@@ -14,9 +14,9 @@ const int AdditiveHeuristic::MAX_COST_VALUE;
 
 AdditiveHeuristic::AdditiveHeuristic(
     tasks::AxiomHandlingType axioms, const shared_ptr<AbstractTask> &transform,
-    bool cache_estimates, const string &description, utils::Verbosity verbosity, std::vector<tasks::ImprovementType> improvements)
+    bool cache_estimates, const string &description, utils::Verbosity verbosity, std::vector<tasks::UnrollingOptionType> unrolling_options)
     : RelaxationHeuristic(
-          axioms, transform, cache_estimates, description, verbosity, improvements),
+          axioms, transform, cache_estimates, description, verbosity, unrolling_options),
       did_write_overflow_warning(false) {
     if (log.is_at_least_normal()) {
         log << "Initializing additive heuristic..." << endl;

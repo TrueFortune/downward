@@ -40,9 +40,10 @@ enum class AxiomHandlingType {
     EXACT_NEGATIVE_CYCLES
 };
 
-enum class ImprovementType {
+enum class UnrollingOptionType {
     PRUNE_UNREACHABLE,
-    REPLACE_PROPAGATION_AXIOMS
+    REPLACE_PROPAGATION_AXIOMS,
+    ONLY_SMALL_CYCLES
 };
 
 struct DefaultValueAxiom {
@@ -107,7 +108,7 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         std::unordered_map<int,int> &var_mapping,
         std::unordered_map<int,int> &prev_mapping,
         std::unordered_map<int,int> &curr_mapping,
-        std::vector<ImprovementType> &improvements);
+        std::vector<UnrollingOptionType> &unrolling_options);
     void create_unrolling_variable_mapping_and_initialize_unrolling_variables(
         const std::vector<int> &vars,
         std::unordered_map<int, int> &var_mapping);
@@ -130,7 +131,7 @@ class DefaultValueAxiomsTask : public DelegatingTask {
         std::vector<std::vector<int>> &sccs);
 public:
     explicit DefaultValueAxiomsTask(
-        const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, std::vector<ImprovementType> improvements = {});
+        const std::shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, std::vector<UnrollingOptionType> unrolling_options = {});
     virtual ~DefaultValueAxiomsTask() override = default;
 
     virtual int get_num_variables() const override;
@@ -164,13 +165,13 @@ public:
 };
 
 extern std::shared_ptr<AbstractTask> get_default_value_axioms_task_if_needed(
-    const std::shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<ImprovementType> improvements = {});
+    const std::shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<UnrollingOptionType> unrolling_options = {});
 extern void add_axioms_option_to_feature(plugins::Feature &feature);
-extern void add_improvements_option_to_feature(plugins::Feature &feature);
+extern void add_unrolling_options_to_feature(plugins::Feature &feature);
 extern std::tuple<AxiomHandlingType> get_axioms_arguments_from_options(
     const plugins::Options &opts);
 
-extern std::tuple<std::vector<ImprovementType>> get_improvements_arguments_from_options(
+extern std::tuple<std::vector<UnrollingOptionType>> get_unrolling_options_arguments_from_options(
     const plugins::Options &opts);
 }
 

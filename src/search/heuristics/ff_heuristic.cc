@@ -12,9 +12,9 @@ namespace ff_heuristic {
 // construction and destruction
 FFHeuristic::FFHeuristic(
     tasks::AxiomHandlingType axioms, const shared_ptr<AbstractTask> &transform,
-    bool cache_estimates, const string &description, utils::Verbosity verbosity, vector<tasks::ImprovementType> improvements)
+    bool cache_estimates, const string &description, utils::Verbosity verbosity, vector<tasks::UnrollingOptionType> unrolling_options)
     : AdditiveHeuristic(
-          axioms, transform, cache_estimates, description, verbosity, improvements),
+          axioms, transform, cache_estimates, description, verbosity, unrolling_options),
       relaxed_plan(task_proxy.get_operators().size(), false) {
     if (log.is_at_least_normal()) {
         log << "Initializing FF heuristic..." << endl;

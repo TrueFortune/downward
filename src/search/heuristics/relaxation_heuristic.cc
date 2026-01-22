@@ -36,26 +36,26 @@ UnaryOperator::UnaryOperator(
 void add_relaxation_heuristic_options_to_feature(
     plugins::Feature &feature, const string &description) {
     tasks::add_axioms_option_to_feature(feature);
-    tasks::add_improvements_option_to_feature(feature);
+    tasks::add_unrolling_options_to_feature(feature);
     add_heuristic_options_to_feature(feature, description);
 }
 
 tuple<
     tasks::AxiomHandlingType, shared_ptr<AbstractTask>, bool, string,
-    utils::Verbosity, vector<tasks::ImprovementType>>
+    utils::Verbosity, vector<tasks::UnrollingOptionType>>
 get_relaxation_heuristic_arguments_from_options(const plugins::Options &opts) {
     return tuple_cat(
         tasks::get_axioms_arguments_from_options(opts),
         get_heuristic_arguments_from_options(opts),
-        tasks::get_improvements_arguments_from_options(opts));
+        tasks::get_unrolling_options_arguments_from_options(opts));
 }
 
 // construction and destruction
 RelaxationHeuristic::RelaxationHeuristic(
     tasks::AxiomHandlingType axioms, const shared_ptr<AbstractTask> &transform,
-    bool cache_estimates, const string &description, utils::Verbosity verbosity, vector<tasks::ImprovementType> improvements)
+    bool cache_estimates, const string &description, utils::Verbosity verbosity, vector<tasks::UnrollingOptionType> unrolling_options)
     : Heuristic(
-          tasks::get_default_value_axioms_task_if_needed(transform, axioms, improvements),
+          tasks::get_default_value_axioms_task_if_needed(transform, axioms, unrolling_options),
           cache_estimates, description, verbosity) {
     // Build propositions.
     propositions.resize(task_properties::get_num_facts(task_proxy));

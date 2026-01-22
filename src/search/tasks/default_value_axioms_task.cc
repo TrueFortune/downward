@@ -17,7 +17,7 @@ using utils::ExitCode;
 
 namespace tasks {
 DefaultValueAxiomsTask::DefaultValueAxiomsTask(
-    const shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, vector<ImprovementType> improvements)
+    const shared_ptr<AbstractTask> &parent, AxiomHandlingType axioms, vector<UnrollingOptionType> unrolling_options)
     : DelegatingTask(parent),
       axioms(axioms),
       default_value_axioms_start_index(parent->get_num_axioms()),
@@ -51,8 +51,11 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 process them further.
             */
             if(pre_var_to_scc[i]->size() > 1 && !variables_used_for_unrolling[i]) {
+                if (pre_var_to_scc[i]->size() > 10 && std::find(unrolling_options.begin(), unrolling_options.end(), UnrollingOptionType::ONLY_SMALL_CYCLES) != unrolling_options.end()) {
+                    continue;
+                }
                 unroll_negative_cycles(
-                    i, pre_var_to_scc, pre_axiom_ids_for_var, var_mapping, prev_mapping, curr_mapping, improvements);
+                    i, pre_var_to_scc, pre_axiom_ids_for_var, var_mapping, prev_mapping, curr_mapping, unrolling_options);
             }
         }
     }
@@ -304,13 +307,13 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     unordered_map<int, int> &var_mapping,
     unordered_map<int, int> &prev_mapping,
     unordered_map<int, int> &curr_mapping,
-    vector<ImprovementType> &improvements) {
+    vector<UnrollingOptionType> &unrolling_options) {
     // The maximum number of timestamps needed to keep the same semantics is equal the number of variables in the SCC
     int timestamps = var_to_scc[var]->size();
     bool prune_unreachable = 
-        (std::find(improvements.begin(), improvements.end(), ImprovementType::PRUNE_UNREACHABLE) != improvements.end());
+        (std::find(unrolling_options.begin(), unrolling_options.end(), UnrollingOptionType::PRUNE_UNREACHABLE) != unrolling_options.end());
     bool replace_propagation_axioms = 
-        (std::find(improvements.begin(), improvements.end(), ImprovementType::REPLACE_PROPAGATION_AXIOMS) != improvements.end());
+        (std::find(unrolling_options.begin(), unrolling_options.end(), UnrollingOptionType::REPLACE_PROPAGATION_AXIOMS) != unrolling_options.end());
 
     if (!prune_unreachable) {
         create_unrolling_variable_mapping_and_initialize_unrolling_variables(*var_to_scc[var], var_mapping);
@@ -779,11 +782,11 @@ int DefaultValueAxiomsTask::get_num_axioms() const {
 }
 
 shared_ptr<AbstractTask> get_default_value_axioms_task_if_needed(
-    const shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<ImprovementType> improvements) {
+    const shared_ptr<AbstractTask> &task, AxiomHandlingType axioms, std::vector<UnrollingOptionType> unrolling_options) {
     TaskProxy proxy(*task);
     if (task_properties::has_axioms(proxy)) {
         return make_shared<tasks::DefaultValueAxiomsTask>(
-            DefaultValueAxiomsTask(task, axioms, improvements));
+            DefaultValueAxiomsTask(task, axioms, unrolling_options));
     }
     return task;
 }
@@ -801,21 +804,24 @@ tuple<AxiomHandlingType> get_axioms_arguments_from_options(
     return make_tuple<AxiomHandlingType>(opts.get<AxiomHandlingType>("axioms"));
 }
 
-void add_improvements_option_to_feature(plugins::Feature &feature) {
-    feature.add_list_option<ImprovementType>(
-        "improvements",
-        "LOREM IPSUM DOLOREM",
+void add_unrolling_options_to_feature(plugins::Feature &feature) {
+    feature.add_list_option<UnrollingOptionType>(
+        "unrolling_options",
+        "Can only be used with exact_negative_cycles."
+        "How to handle the unrolling of negative cycles, "
+        "can show improved performance."
+        "Zero or more options can be selected.",
         plugins::ArgumentInfo::NO_DEFAULT 
     );
 }
 
-tuple<vector<ImprovementType>> get_improvements_arguments_from_options(
+tuple<vector<UnrollingOptionType>> get_unrolling_options_arguments_from_options(
     const plugins::Options &opts) {
-    vector<ImprovementType> improvements;
-    if (opts.contains("improvements")) {
-        improvements = opts.get_list<ImprovementType>("improvements");
+    vector<UnrollingOptionType> unrolling_options;
+    if (opts.contains("unrolling_options")) {
+        unrolling_options = opts.get_list<UnrollingOptionType>("unrolling_options");
     }
-    return make_tuple(improvements);
+    return make_tuple(unrolling_options);
 }
 
 static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
@@ -833,7 +839,8 @@ static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
     {"exact_negative_cycles",
       "PLACEHOLDER"}}); // TODO: add description
 
-static plugins::TypedEnumPlugin<ImprovementType> _improvement_enum_plugin(
+static plugins::TypedEnumPlugin<UnrollingOptionType> _improvement_enum_plugin(
     {{"prune_unreachable", "Does not create axioms and variables that are not reachable."},
-    {"replace_propagation_axioms", "Creates more cycle-independent axioms to replace propagation axioms."}});
+    {"replace_propagation_axioms", "Creates more cycle-independent axioms to replace propagation axioms."},
+    {"only_small_cycles", "Only unroll cycles that are smaller than 10 variables."}});
 }
