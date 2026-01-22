@@ -9,7 +9,7 @@ import itertools
 import math
 
 def create_comparative_report(*args):
-    exp, config_nicks, revisions, attributes, pair_size = args[0]
+    exp, config_nicks, revisions, attributes, pair_size, unrolling = args[0]
     configs = []
     algorithm_pairs = []
     n = int(pair_size)
@@ -26,15 +26,16 @@ def create_comparative_report(*args):
         revision_pairs = [(rev1, rev2) for rev1, rev2 in itertools.combinations(algorithms, 2)]
 
         for rev1, rev2 in revision_pairs:
-            if not ("unrolling" in rev1 or "unrolling" in rev2):
-                continue
-            if (not ("-add-" in rev1 and "-add-" in rev2)) and (not ("-ff-" in rev1 and "-ff-" in rev2)) and (not ("-lm-" in rev1 and "-lm-" in rev2)):
-                continue
-            # Ensure unrolling is always on the right side
-            if "unrolling" in rev1: 
-                rev1_temp = rev2
-                rev2 = rev1
-                rev1 = rev1_temp
+            if unrolling:
+                if not ("unrolling" in rev1 or "unrolling" in rev2):
+                    continue
+                if (not ("-add-" in rev1 and "-add-" in rev2)) and (not ("-ff-" in rev1 and "-ff-" in rev2)) and (not ("-lm-" in rev1 and "-lm-" in rev2)):
+                    continue
+                # Ensure unrolling is always on the right side
+                if "unrolling" in rev1: 
+                    rev1_temp = rev2
+                    rev2 = rev1
+                    rev1 = rev1_temp
 
             algorithm_pairs.append(
                 (
