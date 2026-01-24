@@ -175,8 +175,7 @@ unordered_set<int> DefaultValueAxiomsTask::get_vars_with_relevant_default_value(
         */
         if ((default_value) &&
             (axioms == AxiomHandlingType::APPROXIMATE_NEGATIVE ||
-              (axioms != AxiomHandlingType::EXACT_NEGATIVE_CYCLES &&
-             var_to_scc[var]->size() > 1 ))) {
+             var_to_scc[var]->size() > 1)) {
             continue;
         }
 
