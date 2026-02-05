@@ -83,15 +83,12 @@ DefaultValueAxiomsTask::DefaultValueAxiomsTask(
                 FactPair(var, default_value), vector<FactPair>());
         }
         else {
-            //cout << "Adding default value axioms for variable " << var << endl;
             add_default_value_axioms_for_var(
                 FactPair(var, get_variable_default_axiom_value(var)),
                 axiom_ids_for_var);
         }
     }
     
-
-
 
     if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES) {
         utils::g_log << "Axioms created with unrolling: " << unrolling_axioms_counter << endl;
@@ -317,7 +314,6 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
     if (!prune_unreachable) {
         create_unrolling_variable_mapping_and_initialize_unrolling_variables(*var_to_scc[var], var_mapping);
     }
-    //cout << "Unrolling SCC with " << var_to_scc[var]->size() << " variables" << endl;
     vector<FactPair> new_conditions;
     FactPair cond(0,0);
     FactPair new_head(0,0);
@@ -358,7 +354,6 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
             ++unrolling_axioms_counter;
             cycle_independent_axioms[a] = true;
-            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
         }
     }
     // Next, create cycle-dependent axioms (axioms that depend on at least one variable in the current SCC)
@@ -431,7 +426,6 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
                 default_value_axioms.emplace_back(
                     new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
                 ++unrolling_axioms_counter;
-                //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << " for var " << v << " for axiom " << a << endl;
             }
 
         // Finally, create a propagation axiom to propagate the non-default value to the next timestamp
@@ -473,7 +467,6 @@ void DefaultValueAxiomsTask::unroll_negative_cycles(
             default_value_axioms.emplace_back(
                 new_head, vector<FactPair>(new_conditions.begin(), new_conditions.end()));
             ++unrolling_axioms_counter;
-            //cout << "Created new axiom for unrolling: " << new_head << " <- " << new_conditions << endl;
             }
         }
     }
@@ -484,17 +477,14 @@ int DefaultValueAxiomsTask::get_unrolling_variable_id(
     const unordered_map<int, int> &var_mapping, 
     int var, 
     int timestamp) {
-    //cout << "Input: " << var << ", " << timestamp << ", " << max_timestamps << endl;
     int var_at_mapping = var_mapping.at(var);
     int max_timestamps = get_variable_max_timestamps(var_at_mapping);
     // If the variable is at the last timestamp, we use the original value, so we don't have to change the variables in the rest of the axioms
     if (timestamp == max_timestamps - 1) {
-        //cout << "Return " << var << endl;
         return var;
     }
     // Else we use the variable at the given timestamp
     else {
-        //cout << "Return " << var_mapping.at(var) + timestamp << endl;
         return var_at_mapping + timestamp;
     }
 }
@@ -520,7 +510,6 @@ void DefaultValueAxiomsTask::create_unrolling_variable_mapping_and_initialize_un
     int timestamps = vars.size();
     for (int i = 0; i < timestamps; ++i) {
         var_mapping[vars[i]] = num_variables + i * (timestamps - 1);
-        //cout << "Mapping variable " << vars[i] << " to new unrolling variable id " << var_mapping[vars[i]] << " with default value " << get_variable_default_axiom_value(vars[i]) << endl ;
         initialize_new_unrolling_vars(vars[i], timestamps); // Initialize new variables here to ensure that the mapping is correct
     }
 }
@@ -543,7 +532,6 @@ int DefaultValueAxiomsTask::initialize_new_unrolling_var(
         timestamp, // Current timestamp
         max_timestamps // Max timestamps
     );
-    //cout << "Created new unrolling variable: " << unrolling_variables.back().name << " and id " << get_num_variables() - 1 << endl;
     return get_num_variables() - 1;
 }
 
@@ -561,9 +549,7 @@ tuple<vector<vector<int>>, vector<vector<int>>> DefaultValueAxiomsTask::create_n
     vector<vector<int>> default_dependencies(get_num_variables());
 
     for (int i = 0; i < get_num_axioms(); ++i) {
-        //cout << "Processing axiom " << i << endl;
         if (axioms == AxiomHandlingType::EXACT_NEGATIVE_CYCLES && i < default_value_axioms_start_index && axioms_used_for_unrolling[i]) {
-            //cout << "Skipping axiom " << i << " for dependency creation" << endl;
             continue; // Skip axioms that were used for unrolling, this may only be axioms from before the default value axioms
         }
         int head_var = get_operator_effect(i, 0, true).var;
