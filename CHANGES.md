@@ -9,6 +9,37 @@ For more details, check the repository history
 (<https://issues.fast-downward.org>). Repository branches are named
 after the corresponding tracker issues.
 
+## Bachelor's Thesis of Patrick Weber
+
+Released on February 11, 2026.
+
+Highlights:
+
+- We have added unrolling as an option to exactly compute 
+  default value axioms for the heuristics that make use of those.
+  For this we have added a new option (`axioms=exact_negative_cycles`).
+
+- We have added options that can be set when running an experiment
+  with the option (`axioms=exact_negative_cycles`), these can be set by using a subset of 
+  (`unrolling_options=[prune_unreachable, replace_propagation_axioms, only_small_cycles]`).
+
+- The option `prune_unreachable` does not create axioms of variables that are 
+  unreachable for the heuristic.
+
+- The option `replace_propagation_axioms` replaces the propagation axioms by 
+  instead creating more cycle-independent axioms.
+
+- The option `only_small_cycles` only unrolls cycles that contain less than 
+  10 variables.
+
+- The first two options will not change the result and only reduce
+  the new axioms that are created, which means that less memory and
+  time is needed to solve a problem.
+
+- The third option may change the result but significantly increases
+  the new axioms that are created.
+
+
 ## Fast Downward 24.06
 
 Released on October 10, 2024.
