@@ -16,7 +16,7 @@ Released on February 11, 2026.
 Highlights:
 
 - We have added unrolling as an option to exactly compute 
-  default value axioms for the heuristics that make use of those.
+  default value axioms for cycles for the heuristics that make use of those.
   For this we have added a new option (`axioms=exact_negative_cycles`).
 
 - We have added options that can be set when running an experiment
