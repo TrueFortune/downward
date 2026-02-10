@@ -824,14 +824,14 @@ static plugins::TypedEnumPlugin<AxiomHandlingType> _enum_plugin(
     {"exact_negative_cycles",
       "Transform cyclic dependencies into an exact acyclic representation "
       "and calculate negated axioms exactly for all derived variables."
-      "Note that this can lead to an increase in pre-processing time " 
-      "and memory needed."}});
+      "Note that this can lead to a significant increase in preprocessing time " 
+      "and memory."}});
 
 static plugins::TypedEnumPlugin<UnrollingOptionType> _improvement_enum_plugin(
     {{"prune_unreachable", 
-      "Do not create axioms and variables that are not reachable."},
+      "Does not create axioms and variables that are not reachable."},
     {"replace_propagation_axioms", 
-      "Create more cycle-independent axioms to replace propagation axioms."},
+      "Creates more cycle-independent axioms to replace propagation axioms."},
     {"only_small_cycles", 
-      "Only unroll cycles that are smaller than 10 variables."}});
+      "Only unrolls cycles that are smaller than 10 variables."}});
 }
