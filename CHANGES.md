@@ -23,7 +23,7 @@ Highlights:
   with the option (`axioms=exact_negative_cycles`), these can be set by using a subset of 
   (`unrolling_options=[prune_unreachable, replace_propagation_axioms, only_small_cycles]`).
 
-- The option `prune_unreachable` does not create axioms of variables that are 
+- The option `prune_unreachable` does not create axioms and variables that are 
   unreachable for the heuristic.
 
 - The option `replace_propagation_axioms` replaces the propagation axioms by 
@@ -36,7 +36,7 @@ Highlights:
   the new axioms that are created, which means that less memory and
   time is needed to solve a problem.
 
-- The third option may change the result but significantly increases
+- The third option may change the result but significantly decreases
   the new axioms that are created.
 
 
